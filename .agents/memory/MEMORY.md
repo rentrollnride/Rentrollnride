@@ -1,2 +1,3 @@
 - [Unverified fleet listings](unverified-fleet-listings.md) — withhold seeded Hyundai business details until staff verifies them; preserve the existing records.
 - [Supabase admin confirmation](supabase-admin-confirmation.md) — mail-send logs prove provider acceptance, not inbox delivery; expired verification links need a fresh resend.
+- [GitHub source snapshots](github-source-snapshots.md) — connector API uploads may succeed when shell Git auth fails, but they do not preserve local commit ancestry.
