@@ -1,0 +1,368 @@
+Upgrade the existing Rent Ride N Roll website's visual design so it feels significantly more premium, polished, and automotive.
+
+IMPORTANT:
+Do NOT rebuild the application from scratch.
+Do NOT change the existing database, admin system, fleet-management logic, rental calendar, authentication, or working functionality.
+
+This is primarily a PUBLIC-FACING UI/UX refinement.
+
+DESIGN GOAL
+
+The current site has a good foundation, but it still feels somewhat like a template.
+
+Move the brand toward:
+
+- Premium automotive rental
+- Sophisticated
+- Modern
+- Established
+- Trustworthy
+- Clean
+- High-end without pretending to be an exotic/luxury-car company
+
+Think upscale automotive editorial design rather than generic SaaS or a used-car marketplace.
+
+Keep the existing core brand:
+
+- RENT RIDE N ROLL
+- Black / white / warm orange accent
+- Existing key logo concept
+- Bold typography
+- Strong automotive imagery
+
+Do NOT introduce excessive gradients, glassmorphism, neon effects, rounded SaaS cards, or unnecessary animations.
+
+--------------------------------
+1. FIX ALL VEHICLE IMAGES
+--------------------------------
+
+This is the highest priority.
+
+The Ford Bronco Sport currently has a broken image on the fleet page.
+
+There must NEVER be a broken-image icon visible to customers.
+
+Audit every vehicle image and repair broken URLs/assets.
+
+Current fleet:
+
+- 2023 Ford Bronco Sport
+- 2023 Honda Accord Hybrid
+- 2023 Subaru Outback
+- 2025 Hyundai Palisade
+- 2025 Hyundai Santa Fe
+
+The business uses representative vehicle imagery.
+
+Images do NOT have to depict the exact physical rental vehicle.
+
+However, representative images must:
+
+- Match the correct make/model/generation as closely as practical
+- Be high resolution
+- Have consistent aspect ratios
+- Use professional automotive photography
+- Avoid visible dealer branding
+- Avoid watermarks
+- Avoid random low-quality backgrounds
+- Be visually consistent across the fleet
+
+Create a reusable image fallback so a failed external image NEVER displays a browser broken-image icon.
+
+If an image fails, show an elegant branded vehicle placeholder until it is replaced.
+
+Display this disclosure where appropriate:
+
+"Vehicle shown is representative. Actual vehicle, color and features may vary."
+
+--------------------------------
+2. REMOVE THE MONOSPACE / TYPEWRITER FEEL
+--------------------------------
+
+The homepage body copy currently uses typography that resembles a typewriter/monospace font.
+
+Remove this treatment from normal marketing copy.
+
+Use a sophisticated modern sans-serif type system.
+
+Keep strong condensed/bold typography for major headlines if appropriate.
+
+Create clear hierarchy between:
+
+Eyebrows
+Headlines
+Body copy
+Vehicle specifications
+Prices
+Buttons
+
+Body copy should feel clean and premium, not technical.
+
+--------------------------------
+3. REFINE THE HERO
+--------------------------------
+
+Keep the dark automotive hero direction.
+
+Keep:
+
+DRIVE WITH
+CONFIDENCE.
+
+But refine the supporting copy.
+
+Replace the current long paragraph with:
+
+"Reliable daily and weekly rentals across Raleigh-Durham, backed by straightforward pricing and personal service."
+
+Keep the orange Raleigh-Durham location eyebrow.
+
+Improve spacing around the headline and CTAs.
+
+The hero should feel deliberate and spacious rather than crowded.
+
+--------------------------------
+4. FIX CTA LANGUAGE
+--------------------------------
+
+Customers CANNOT complete reservations online.
+
+Therefore remove misleading language such as:
+
+RESERVE NOW
+
+when it could imply online checkout.
+
+Use:
+
+CALL TO RESERVE
+
+as the primary CTA.
+
+Secondary CTA:
+
+VIEW FLEET
+
+Other appropriate CTAs:
+
+CALL OR TEXT
+CHECK AVAILABILITY
+CALL TO RESERVE
+
+All phone CTAs should trigger the appropriate phone action on mobile.
+
+Where texting is offered, provide an appropriate SMS action.
+
+Do NOT build online checkout or online booking.
+
+--------------------------------
+5. REDESIGN FLEET PRESENTATION
+--------------------------------
+
+The current fleet cards feel too much like basic inventory listings.
+
+Make them feel more editorial and premium.
+
+Each vehicle should prominently feature:
+
+Large vehicle photograph
+Year
+Vehicle class
+Make/model
+Passenger capacity
+Transmission
+Daily price
+Weekly price where available
+Availability indicator
+Details CTA
+
+Example:
+
+2025 • FULL-SIZE SUV
+
+HYUNDAI PALISADE
+
+7 passengers • Automatic
+
+FROM
+$XX / DAY
+
+VIEW DETAILS →
+
+Avoid excessive borders.
+
+Use whitespace, typography, photography and alignment to establish hierarchy.
+
+Keep orange as an accent rather than covering large portions of every card.
+
+--------------------------------
+6. CONSISTENT VEHICLE PHOTOGRAPHY
+--------------------------------
+
+Create one visual system for fleet images.
+
+Every fleet card image should use the same:
+
+Aspect ratio
+Object positioning
+Image height
+Crop behavior
+Image quality standards
+
+Use object-fit appropriately.
+
+Cars should not randomly appear huge, tiny, cropped, stretched or differently positioned between cards.
+
+--------------------------------
+7. PREMIUM SPACING
+--------------------------------
+
+Increase whitespace throughout the public website.
+
+Premium brands generally allow content to breathe.
+
+Improve:
+
+Section spacing
+Card padding
+Headline margins
+Navigation spacing
+Button spacing
+Image-to-copy spacing
+
+Do not simply make everything larger.
+
+Create deliberate rhythm.
+
+--------------------------------
+8. REDUCE VISUAL CLUTTER
+--------------------------------
+
+Remove unnecessary:
+
+Borders
+Dividers
+Boxes
+Decorative UI
+Repeated labels
+
+Not every piece of information needs a container.
+
+Use typography and whitespace instead.
+
+--------------------------------
+9. HEADER / NAVIGATION
+--------------------------------
+
+Preserve the Rent Ride N Roll branding.
+
+Refine the mobile header so it feels extremely polished.
+
+Keep:
+
+Logo
+Menu
+Call/Text access
+
+Make the header compact enough that it doesn't consume excessive mobile viewport space.
+
+Navigation should feel automotive and premium rather than SaaS-like.
+
+--------------------------------
+10. MOBILE-FIRST QA
+--------------------------------
+
+The majority of customers may encounter this website from their phone.
+
+Audit specifically at common iPhone widths.
+
+Verify:
+
+No horizontal scrolling
+No clipped text
+No overlapping text
+No broken images
+Buttons are easy to tap
+Vehicle names don't collide with UI
+Prices remain readable
+Navigation works properly
+Images maintain correct aspect ratios
+
+--------------------------------
+11. PERFORMANCE
+--------------------------------
+
+Do not sacrifice performance for visual quality.
+
+Optimize vehicle images.
+
+Use:
+
+Responsive image sizing
+Modern image formats where supported
+Lazy loading below the fold
+Proper width/height attributes to prevent layout shift
+
+Hero imagery should load efficiently.
+
+--------------------------------
+12. DO NOT TOUCH THE ADMIN DESIGN UNNECESSARILY
+--------------------------------
+
+The admin system has a different objective.
+
+The public site should feel premium.
+
+The admin should remain extremely simple and operational.
+
+Do not make the admin "luxurious" at the expense of usability.
+
+Preserve:
+
+Today
+Calendar
+Cars
+Customers
+New Rental
+Due Today
+Overdue
+Extend Rental
+Mark Returned
+
+Admin usability takes priority over branding.
+
+--------------------------------
+FINAL QUALITY PASS
+--------------------------------
+
+Before completing this task, inspect EVERY public-facing page on desktop and mobile.
+
+Specifically verify:
+
+1. No broken images.
+2. No placeholder browser icons.
+3. No monospace marketing paragraphs.
+4. No misleading "Reserve Now" online-booking language.
+5. Every vehicle image renders correctly.
+6. Fleet imagery is visually consistent.
+7. Every call/text CTA works.
+8. Vehicle cards have consistent dimensions.
+9. Typography is consistent.
+10. Mobile layout is polished.
+11. Existing admin functionality still works.
+12. Existing database functionality has not been broken.
+
+Do not stop after changing the homepage.
+
+Apply the design system consistently across:
+
+Home
+Fleet
+Vehicle Details
+Rates
+Rental Requirements
+Service Area
+About
+Contact
+
+The finished site should make someone encountering Rent Ride N Roll for the first time assume they are dealing with a professional, established Raleigh-Durham rental operation — while remaining truthful about the actual vehicles and services offered.

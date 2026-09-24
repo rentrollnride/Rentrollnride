@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Rent Ride Roll LLC"
+description = "A premium mobile-first rental website and simple fleet management system for Rent Ride Roll LLC in the Raleigh-Durham area."
+version = "1.0.0"
+id = "artifacts/rent-ride-n-roll"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24129
+
+[services.development]
+run = "pnpm --filter @workspace/rent-ride-n-roll run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/rent-ride-n-roll", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/rent-ride-n-roll/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24129"
+BASE_PATH = "/"

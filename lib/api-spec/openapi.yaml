@@ -1,0 +1,490 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Rent Ride Roll LLC public fleet and admin operations API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: public
+    description: Public website data
+  - name: dashboard
+    description: Admin dashboard data
+  - name: vehicles
+    description: Fleet inventory
+  - name: customers
+    description: Customer records
+  - name: rentals
+    description: Rental operations
+  - name: maintenance
+    description: Maintenance periods
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /public/vehicles:
+    get:
+      operationId: getPublicVehicles
+      tags: [public]
+      summary: List public vehicle inventory
+      responses:
+        "200":
+          description: Publicly safe vehicle data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicVehicle"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get today's fleet summary and actionable rentals
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /vehicles:
+    get:
+      operationId: listVehicles
+      tags: [vehicles]
+      summary: List all vehicles
+      responses:
+        "200":
+          description: Vehicle inventory
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vehicle"
+    post:
+      operationId: createVehicle
+      tags: [vehicles]
+      summary: Add a vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleInput"
+      responses:
+        "201":
+          description: Created vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+  /vehicles/{id}:
+    patch:
+      operationId: updateVehicle
+      tags: [vehicles]
+      summary: Edit a vehicle
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleUpdate"
+      responses:
+        "200":
+          description: Updated vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /vehicles/{id}/archive:
+    post:
+      operationId: archiveVehicle
+      tags: [vehicles]
+      summary: Archive a vehicle
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Archived vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List customer records
+      responses:
+        "200":
+          description: Customer records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create a customer record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+  /customers/{id}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get a customer with rental history
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Customer detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rentals:
+    get:
+      operationId: listRentals
+      tags: [rentals]
+      summary: List rentals
+      responses:
+        "200":
+          description: Rental records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rental"
+    post:
+      operationId: createRental
+      tags: [rentals]
+      summary: Create a rental after conflict checking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalInput"
+      responses:
+        "201":
+          description: Created rental
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rental"
+        "409":
+          description: Scheduling conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rentals/{id}/status:
+    post:
+      operationId: updateRentalStatus
+      tags: [rentals]
+      summary: Transition a rental status
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalStatusInput"
+      responses:
+        "200":
+          description: Updated rental
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rental"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rentals/{id}/extend:
+    post:
+      operationId: extendRental
+      tags: [rentals]
+      summary: Extend a rental after conflict checking
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalExtensionInput"
+      responses:
+        "200":
+          description: Extended rental
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rental"
+        "409":
+          description: Scheduling conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /maintenance:
+    get:
+      operationId: listMaintenance
+      tags: [maintenance]
+      summary: List maintenance periods
+      responses:
+        "200":
+          description: Maintenance periods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaintenancePeriod"
+    post:
+      operationId: createMaintenance
+      tags: [maintenance]
+      summary: Add a maintenance block
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceInput"
+      responses:
+        "201":
+          description: Created maintenance period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenancePeriod"
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    PublicVehicle:
+      type: object
+      required: [id, name, year, make, model, vehicleClass, capacity, transmission, dailyRate, weeklyRate, imageUrl, status, detailsPending]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        year: { type: integer }
+        make: { type: string }
+        model: { type: string }
+        vehicleClass: { type: ["string", "null"] }
+        capacity: { type: ["integer", "null"] }
+        transmission: { type: ["string", "null"] }
+        features:
+          type: array
+          items: { type: string }
+        dailyRate: { type: ["number", "null"] }
+        weeklyRate: { type: ["number", "null"] }
+        imageUrl: { type: string }
+        status: { type: string, enum: [available, out, maintenance, details_pending] }
+        detailsPending: { type: boolean }
+    Vehicle:
+      allOf:
+        - $ref: "#/components/schemas/PublicVehicle"
+        - type: object
+          required: [unitNumber, licensePlate, archived]
+          properties:
+            unitNumber: { type: ["string", "null"] }
+            licensePlate: { type: ["string", "null"] }
+            vin: { type: ["string", "null"] }
+            notes: { type: ["string", "null"] }
+            archived: { type: boolean }
+    VehicleInput:
+      type: object
+      required: [year, make, model, vehicleClass, unitNumber, licensePlate, capacity, transmission, dailyRate, weeklyRate]
+      properties:
+        year: { type: integer, minimum: 1900 }
+        make: { type: string, minLength: 1 }
+        model: { type: string, minLength: 1 }
+        vehicleClass: { type: string, minLength: 1 }
+        unitNumber: { type: string, minLength: 1 }
+        licensePlate: { type: string, minLength: 1 }
+        vin: { type: ["string", "null"] }
+        capacity: { type: integer, minimum: 1 }
+        transmission: { type: string, minLength: 1 }
+        dailyRate: { type: number, minimum: 0 }
+        weeklyRate: { type: number, minimum: 0 }
+        imageUrl: { type: string }
+        features:
+          type: array
+          items: { type: string }
+        notes: { type: ["string", "null"] }
+    VehicleUpdate:
+      allOf:
+        - $ref: "#/components/schemas/VehicleInput"
+      type: object
+      properties:
+        status: { type: string, enum: [available, out, maintenance] }
+        archived: { type: boolean }
+        detailsConfirmed: { type: boolean }
+    Customer:
+      type: object
+      required: [id, name, phone, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        phone: { type: string }
+        email: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+    CustomerInput:
+      type: object
+      required: [name, phone]
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string, minLength: 7 }
+        email: { type: ["string", "null"], format: email }
+        notes: { type: ["string", "null"] }
+    CustomerDetail:
+      allOf:
+        - $ref: "#/components/schemas/Customer"
+        - type: object
+          required: [currentRental, rentalHistory]
+          properties:
+            currentRental:
+              oneOf:
+                - $ref: "#/components/schemas/Rental"
+                - type: "null"
+            rentalHistory:
+              type: array
+              items: { $ref: "#/components/schemas/Rental" }
+    Rental:
+      type: object
+      required: [id, customerId, customerName, customerPhone, vehicleId, vehicleName, pickupAt, expectedReturnAt, rateType, rate, deposit, depositStatus, status, notes]
+      properties:
+        id: { type: string }
+        customerId: { type: string }
+        customerName: { type: string }
+        customerPhone: { type: string }
+        vehicleId: { type: string }
+        vehicleName: { type: string }
+        pickupAt: { type: string, format: date-time }
+        expectedReturnAt: { type: string, format: date-time }
+        actualReturnAt: { type: ["string", "null"], format: date-time }
+        rateType: { type: string, enum: [daily, weekly, custom] }
+        rate: { type: number }
+        deposit: { type: number }
+        depositStatus: { type: string, enum: [not_collected, collected, returned, partially_returned, kept] }
+        status: { type: string, enum: [reserved, missed_pickup, out, due_today, overdue, returned, cancelled] }
+        notes: { type: ["string", "null"] }
+    RentalInput:
+      type: object
+      required: [customerId, vehicleId, pickupAt, expectedReturnAt, rateType, rate, deposit, depositStatus]
+      properties:
+        customerId: { type: string }
+        vehicleId: { type: string }
+        pickupAt: { type: string, format: date-time }
+        expectedReturnAt: { type: string, format: date-time }
+        rateType: { type: string, enum: [daily, weekly, custom] }
+        rate: { type: number, minimum: 0 }
+        deposit: { type: number, minimum: 0, default: 300 }
+        depositStatus: { type: string, enum: [not_collected, collected, returned, partially_returned, kept] }
+        notes: { type: ["string", "null"] }
+    RentalStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [reserved, out, returned, cancelled] }
+        actualReturnAt: { type: ["string", "null"], format: date-time }
+        depositStatus: { type: ["string", "null"], enum: [not_collected, collected, returned, partially_returned, kept] }
+        notes: { type: ["string", "null"] }
+    RentalExtensionInput:
+      type: object
+      required: [expectedReturnAt]
+      properties:
+        expectedReturnAt: { type: string, format: date-time }
+    MaintenancePeriod:
+      type: object
+      required: [id, vehicleId, vehicleName, startAt, endAt, reason, notes]
+      properties:
+        id: { type: string }
+        vehicleId: { type: string }
+        vehicleName: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        reason: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+    MaintenanceInput:
+      type: object
+      required: [vehicleId, startAt, endAt]
+      properties:
+        vehicleId: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        reason: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+    Dashboard:
+      type: object
+      required: [totalVehicles, available, out, dueToday, overdue, rentals]
+      properties:
+        totalVehicles: { type: integer }
+        available: { type: integer }
+        out: { type: integer }
+        dueToday: { type: integer }
+        overdue: { type: integer }
+        rentals:
+          type: array
+          items: { $ref: "#/components/schemas/Rental" }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
