@@ -21,6 +21,8 @@ type AgreementRow = {
   sentAt: string | null
   signedAt: string | null
   holdExpiresAt: string | null
+  signingUrl?: string
+  signerName?: string | null
 }
 
 export default function Rentals() {
@@ -135,7 +137,7 @@ function RentalRow({ rental, agreement }: { rental: any, agreement?: AgreementRo
 
       <div className="flex items-center gap-2 self-end md:self-auto flex-wrap">
         {agreement?.agreementStatus !== "signed" && rental.status !== "returned" && rental.status !== "cancelled" && (
-          <SendAgreementButton rental={rental} agreement={agreement} />
+          <SigningLinkButton rental={rental} agreement={agreement} />
         )}
         {(rental.status === 'reserved' || rental.status === 'missed_pickup') && (
           <>
@@ -165,41 +167,48 @@ function RentalRow({ rental, agreement }: { rental: any, agreement?: AgreementRo
 function AgreementBadge({ agreement }: { agreement?: AgreementRow }) {
   const status = agreement?.agreementStatus ?? "not_sent"
   if (status === "signed") return <Badge className="bg-emerald-700 text-white uppercase text-[10px]">Agreement Signed</Badge>
-  if (status === "sent" || status === "sending") return <Badge variant="secondary" className="uppercase text-[10px]">Awaiting Signature</Badge>
+  if (status === "sent" || status === "sending" || status === "pending_signature") return <Badge variant="secondary" className="uppercase text-[10px]">Awaiting Signature</Badge>
   if (status === "declined" || status === "email_bounced") return <Badge variant="destructive" className="uppercase text-[10px]">{status === "declined" ? "Agreement Declined" : "Email Bounced"}</Badge>
   const expired = agreement?.holdExpiresAt && new Date(agreement.holdExpiresAt).getTime() <= Date.now()
   if (expired) return <Badge variant="destructive" className="uppercase text-[10px]">Signature Hold Expired</Badge>
-  return <Badge variant="outline" className="uppercase text-[10px]">Agreement Not Sent</Badge>
+  return <Badge variant="outline" className="uppercase text-[10px]">Agreement Not Started</Badge>
 }
 
-function SendAgreementButton({ rental, agreement }: { rental: any, agreement?: AgreementRow }) {
+function SigningLinkButton({ rental, agreement }: { rental: any, agreement?: AgreementRow }) {
   const { session } = useAuth()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const [sending, setSending] = useState(false)
+  const [working, setWorking] = useState(false)
 
-  const send = async () => {
+  const getLink = async () => {
     if (!session?.access_token) return
-    setSending(true)
+    setWorking(true)
     try {
-      const response = await fetch(`/api/rentals/${rental.id}/agreement/send`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || "Unable to send agreement.")
-      await queryClient.invalidateQueries({ queryKey: ["rental-agreements"] })
-      toast({ title: agreement?.agreementStatus === "sent" ? "Agreement resent" : "Agreement sent" })
+      let signingUrl = agreement?.signingUrl
+      if (!signingUrl) {
+        const response = await fetch(`/api/rentals/${rental.id}/agreement/send`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || "Unable to prepare agreement.")
+        signingUrl = data.signingUrl
+        await queryClient.invalidateQueries({ queryKey: ["rental-agreements"] })
+      }
+      if (!signingUrl) throw new Error("Signing link is unavailable.")
+      const fullUrl = `${window.location.origin}${signingUrl}`
+      await navigator.clipboard.writeText(fullUrl)
+      toast({ title: "Signing link copied", description: "Send this secure link to the renter if they need to resume signing." })
     } catch (err) {
-      toast({ title: "Agreement not sent", description: err instanceof Error ? err.message : "Unable to send agreement.", variant: "destructive" })
+      toast({ title: "Could not copy signing link", description: err instanceof Error ? err.message : "Unable to prepare agreement.", variant: "destructive" })
     } finally {
-      setSending(false)
+      setWorking(false)
     }
   }
 
   return (
-    <Button size="sm" variant="outline" onClick={() => void send()} disabled={sending}>
-      {sending ? "Sending…" : agreement?.agreementStatus === "sent" ? "Resend Agreement" : "Send Agreement"}
+    <Button size="sm" variant="outline" onClick={() => void getLink()} disabled={working}>
+      {working ? "Preparing…" : "Copy Signing Link"}
     </Button>
   )
 }
