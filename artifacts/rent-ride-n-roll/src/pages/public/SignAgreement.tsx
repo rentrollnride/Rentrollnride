@@ -23,6 +23,17 @@ type Agreement = {
   rate: number
   deposit: number
   approvedTravelArea: string
+  rentalDays: number | null
+  estimatedBaseTotal: number | null
+  estimatedTax: number | null
+  estimatedTotal: number | null
+  electronicRecordDisclosure?: {
+    paperOption: string
+    withdrawBeforeSigning: string
+    scope: string
+    copies: string
+    requirements: string
+  }
 }
 
 export default function SignAgreement() {
@@ -85,6 +96,19 @@ export default function SignAgreement() {
           </div>
         ) : agreement ? (
           <>
+            {agreement.agreementStatus !== "signed" && agreement.agreementStatus !== "expired" && agreement.electronicRecordDisclosure && (
+              <section className="mt-8 border border-border bg-secondary/30 p-6 print:hidden">
+                <h3 className="font-black uppercase">Electronic records disclosure</h3>
+                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <p>{agreement.electronicRecordDisclosure.paperOption}</p>
+                  <p>{agreement.electronicRecordDisclosure.withdrawBeforeSigning}</p>
+                  <p>{agreement.electronicRecordDisclosure.scope}</p>
+                  <p>{agreement.electronicRecordDisclosure.copies}</p>
+                  <p><b className="text-foreground">System requirements:</b> {agreement.electronicRecordDisclosure.requirements}</p>
+                </div>
+              </section>
+            )}
+
             {agreement.agreementStatus === "signed" ? (
               <section className="mb-8 border border-emerald-300 bg-emerald-50 p-6 text-emerald-950 print:border-black print:bg-white">
                 <div className="flex items-start gap-3">
@@ -135,7 +159,11 @@ export default function SignAgreement() {
                 <p><b>Pickup:</b> {new Date(agreement.pickupAt).toLocaleString()}</p>
                 <p><b>Return:</b> {new Date(agreement.expectedReturnAt).toLocaleString()}</p>
                 <p><b>Rate:</b> ${agreement.rate} {agreement.rateType}</p>
-                <p><b>Refundable deposit:</b> ${agreement.deposit}</p>
+                <p><b>Rental days:</b> {agreement.rentalDays ?? "—"}</p>
+                <p><b>Base rental total:</b> ${Number(agreement.estimatedBaseTotal ?? 0).toFixed(2)}</p>
+                <p><b>NC short-term rental tax:</b> ${Number(agreement.estimatedTax ?? 0).toFixed(2)}</p>
+                <p className="font-black"><b>Total estimated rental price:</b> ${Number(agreement.estimatedTotal ?? 0).toFixed(2)}</p>
+                <p><b>Refundable deposit:</b> ${agreement.deposit} collected separately at pickup</p>
               </div>
 
               <pre className="mt-8 whitespace-pre-wrap font-sans text-[13px] leading-6">{agreement.agreementText}</pre>
@@ -171,7 +199,7 @@ export default function SignAgreement() {
 
                 <label className="flex items-start gap-3 text-sm">
                   <input type="checkbox" className="mt-1" checked={electronicConsent} onChange={(e) => setElectronicConsent(e.target.checked)} required />
-                  <span>I consent to use an electronic signature and understand that typing my name and submitting this form is intended to have the same effect as signing by hand.</span>
+                  <span>I affirmatively consent to conduct this rental transaction electronically, confirm I can access and retain this agreement using the system requirements disclosed above, and understand that typing my name and submitting this form is intended to have the same effect as signing by hand.</span>
                 </label>
 
                 {error && <p role="alert" className="font-semibold text-destructive">{error}</p>}
