@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useGetPublicVehicles } from "@workspace/api-client-react"
-import { useParams, Link } from "wouter"
+import { useParams, Link, useLocation } from "wouter"
 import { addDays, format } from "date-fns"
 import { ArrowLeft, CheckCircle2, FileSignature, LockKeyhole } from "lucide-react"
 import { PublicLayout } from "@/components/layout/PublicLayout"
@@ -27,6 +27,7 @@ type ReservationResult = {
 
 export default function Reserve() {
   const { id } = useParams<{ id: string }>()
+  const [, setLocation] = useLocation()
   const { data: vehicles, isLoading } = useGetPublicVehicles()
   const vehicle = vehicles?.find((item) => item.id === id)
   const [config, setConfig] = useState<ReservationConfig | null>(null)
@@ -76,6 +77,10 @@ export default function Reserve() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Unable to create reservation.")
+      if (data.signingUrl) {
+        setLocation(data.signingUrl)
+        return
+      }
       setResult(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create reservation.")
@@ -96,7 +101,7 @@ export default function Reserve() {
             <CheckCircle2 className="mx-auto h-12 w-12 text-accent" />
             <h1 className="mt-6 text-3xl font-black uppercase tracking-tight">Check your email</h1>
             <p className="mt-4 text-muted-foreground leading-relaxed">
-              Your vehicle is temporarily held while you sign the Rent Ride Roll LLC rental agreement. The reservation becomes confirmed after the electronic agreement is completed.
+              Your vehicle is temporarily held while you review and electronically sign the Rent Ride Roll LLC rental agreement.
             </p>
             {result.holdExpiresAt && (
               <p className="mt-5 text-sm font-bold">
@@ -127,7 +132,7 @@ export default function Reserve() {
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </h1>
               <div className="mt-6 space-y-3 text-sm text-muted-foreground">
-                <p className="flex gap-2"><FileSignature className="h-4 w-4 shrink-0 text-accent" /> Agreement is sent by email for electronic signature.</p>
+                <p className="flex gap-2"><FileSignature className="h-4 w-4 shrink-0 text-accent" /> Review and sign the agreement securely on this site.</p>
                 <p className="flex gap-2"><LockKeyhole className="h-4 w-4 shrink-0 text-accent" /> Your dates are held for {config?.holdMinutes ?? 60} minutes while you sign.</p>
                 <p><strong className="text-foreground">Approved travel:</strong> {config?.approvedTravelArea ?? "North Carolina, South Carolina, Virginia, and Washington, DC"}. Travel outside this area requires approval and may have additional fees.</p>
                 <p><strong className="text-foreground">Deposit:</strong> ${config?.deposit ?? 300} refundable deposit collected at pickup, subject to the rental agreement and permitted deductions.</p>
@@ -185,7 +190,7 @@ export default function Reserve() {
                 {error && <p role="alert" className="text-sm font-semibold text-destructive">{error}</p>}
 
                 <Button type="submit" className="h-14 w-full uppercase tracking-widest" disabled={submitting || config?.enabled === false}>
-                  {submitting ? "Sending agreement…" : "Reserve & send agreement"}
+                  {submitting ? "Creating agreement…" : "Reserve & review agreement"}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">No charge is made online. Payment and deposit are handled at pickup.</p>
               </form>
