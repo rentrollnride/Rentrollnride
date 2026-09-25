@@ -41,7 +41,7 @@ export default function Home() {
           </h1>
           
           <p className="mt-8 text-lg md:text-xl max-w-xl text-primary-foreground/70 font-light leading-relaxed">
-              Daily and weekly rental rates for Raleigh-Durham. Call or text to discuss dates, current availability, and rental terms.
+              Daily and weekly rental rates for Raleigh-Durham. Reserve online and sign your agreement electronically, or call or text us for help.
           </p>
           <RentalRequirementsSummary dark className="mt-8 max-w-xl" />
           <div className="mt-12 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-6 w-full sm:w-auto">
@@ -83,7 +83,7 @@ export default function Home() {
             <Clock className="w-8 h-8 text-accent mb-8" />
             <h3 className="text-xl font-bold uppercase tracking-tight mb-4 text-foreground">Fast Setup</h3>
             <p className="text-muted-foreground text-sm leading-loose">
-              We arrange rentals by phone or text. Contact us to discuss the process, pickup arrangements, and timing for your rental.
+              Reserve online and complete your rental agreement electronically before pickup, or contact us by phone or text for help.
             </p>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto relative z-10">
           <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-8">Ready to Roll?</h2>
           <p className="text-lg mb-12 text-primary-foreground/70 font-light leading-relaxed">
-            Call or text to ask about your dates, vehicle availability, rates, and rental terms. We do not accept bookings or payments through this website.
+            Choose a vehicle and submit a reservation online. Your dates are held while you electronically sign the rental agreement. Payment and the refundable deposit are handled at pickup.
           </p>
           <RentalRequirementsSummary dark className="mx-auto max-w-2xl mb-10" />
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-6 justify-center">
