@@ -4,18 +4,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/components/auth-provider"
-import { approvedAdminEmails, registerAdmin, resendAdminConfirmation } from "@/lib/supabase-auth"
+import { resendAdminConfirmation } from "@/lib/supabase-auth"
 import { useState, type FormEvent } from "react"
 
 export default function Login() {
   const [, setLocation] = useLocation()
   const { login, session } = useAuth()
-  const [email, setEmail] = useState(approvedAdminEmails()[0] || "")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const [setupMode, setSetupMode] = useState(false)
 
   if (session) {
     queueMicrotask(() => setLocation("/admin"))
@@ -28,15 +27,8 @@ export default function Login() {
     setNotice("")
     setSubmitting(true)
     try {
-      if (setupMode) {
-        await registerAdmin(email, password)
-        setNotice("Check the admin inbox for a verification link. Confirm your email before signing in. If it does not arrive or expires, request a new link below.")
-        setSetupMode(false)
-        setPassword("")
-      } else {
-        await login(email, password)
-        setLocation("/admin")
-      }
+      await login(email, password)
+      setLocation("/admin")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in.")
     } finally {
@@ -83,19 +75,7 @@ export default function Login() {
               {error && <p role="alert" className="text-sm text-destructive font-mono">{error}</p>}
               {notice && <p role="status" className="text-sm text-foreground font-mono">{notice}</p>}
               <Button type="submit" className="w-full h-14 text-lg" disabled={submitting}>
-                {submitting ? "Please wait…" : setupMode ? "Create Admin Account" : "Secure Sign In"}
-              </Button>
-              <Button
-                type="button"
-                variant="link"
-                className="w-full text-xs uppercase tracking-wider"
-                onClick={() => {
-                  setError("")
-                  setNotice("")
-                  setSetupMode((value) => !value)
-                }}
-              >
-                {setupMode ? "Already created? Sign in" : "First time? Create admin account"}
+                {submitting ? "Please wait…" : "Secure Sign In"}
               </Button>
               <Button
                 type="button"

@@ -176,6 +176,27 @@ paths:
                 $ref: "#/components/schemas/CustomerDetail"
         "404":
           $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateCustomer
+      tags: [customers]
+      summary: Edit a customer record
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerUpdate"
+      responses:
+        "200":
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /rentals:
     get:
       operationId: listRentals
@@ -292,6 +313,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MaintenancePeriod"
+  /maintenance/{id}:
+    patch:
+      operationId: updateMaintenance
+      tags: [maintenance]
+      summary: Edit a maintenance block
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceUpdate"
+      responses:
+        "200":
+          description: Updated maintenance period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenancePeriod"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteMaintenance
+      tags: [maintenance]
+      summary: Cancel a maintenance block
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Maintenance period cancelled
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
   parameters:
     Id:
@@ -392,6 +446,14 @@ components:
         phone: { type: string, minLength: 7 }
         email: { type: ["string", "null"], format: email }
         notes: { type: ["string", "null"] }
+    CustomerUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string, minLength: 7 }
+        email: { type: ["string", "null"], format: email }
+        notes: { type: ["string", "null"] }
     CustomerDetail:
       allOf:
         - $ref: "#/components/schemas/Customer"
@@ -470,6 +532,14 @@ components:
         endAt: { type: string, format: date-time }
         reason: { type: ["string", "null"] }
         notes: { type: ["string", "null"] }
+    MaintenanceUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        reason: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
     Dashboard:
       type: object
       required: [totalVehicles, available, out, dueToday, overdue, rentals]
@@ -487,4 +557,3 @@ components:
       required: [error]
       properties:
         error: { type: string }
-

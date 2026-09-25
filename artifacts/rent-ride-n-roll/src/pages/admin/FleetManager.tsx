@@ -1,9 +1,9 @@
 import { AdminLayout } from "@/components/layout/AdminLayout"
-import { useListVehicles, useCreateVehicle, useCreateMaintenance, useUpdateVehicle, type Vehicle } from "@workspace/api-client-react"
+import { useListVehicles, useCreateVehicle, useCreateMaintenance, useUpdateVehicle, useArchiveVehicle, type Vehicle } from "@workspace/api-client-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, Wrench } from "lucide-react"
+import { Search, Plus, Wrench, Pencil, Archive } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -166,9 +166,100 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
         {!vehicle.detailsPending && vehicle.status !== "maintenance" && (
           <ScheduleMaintenanceDialog vehicle={vehicle} />
         )}
+        {!vehicle.detailsPending && <EditVehicleDialog vehicle={vehicle} />}
+        {!vehicle.detailsPending && <ArchiveVehicleButton vehicle={vehicle} />}
       </div>
     </div>
   )
+}
+
+function EditVehicleDialog({ vehicle }: { vehicle: Vehicle }) {
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState(() => ({
+    year: String(vehicle.year), make: vehicle.make, model: vehicle.model,
+    vehicleClass: vehicle.vehicleClass ?? "", unitNumber: vehicle.unitNumber ?? "",
+    licensePlate: vehicle.licensePlate ?? "", capacity: String(vehicle.capacity ?? ""),
+    transmission: vehicle.transmission ?? "Automatic", dailyRate: String(vehicle.dailyRate ?? ""),
+    weeklyRate: String(vehicle.weeklyRate ?? ""), imageUrl: vehicle.imageUrl,
+    vin: vehicle.vin ?? "", notes: vehicle.notes ?? "",
+    features: (vehicle.features ?? []).join(", "),
+  }))
+  const updateVehicle = useUpdateVehicle()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault()
+    updateVehicle.mutate({ id: vehicle.id, data: {
+      year: Number(form.year), make: form.make.trim(), model: form.model.trim(),
+      vehicleClass: form.vehicleClass.trim(), unitNumber: form.unitNumber.trim(),
+      licensePlate: form.licensePlate.trim(), capacity: Number(form.capacity),
+      transmission: form.transmission.trim(), dailyRate: Number(form.dailyRate),
+      weeklyRate: Number(form.weeklyRate), imageUrl: form.imageUrl.trim(),
+      vin: form.vin.trim() || null, notes: form.notes.trim() || null,
+      features: form.features.split(",").map(value => value.trim()).filter(Boolean),
+    } }, {
+      onSuccess: () => {
+        toast({ title: "Vehicle updated" })
+        void Promise.all([
+          queryClient.invalidateQueries({ queryKey: getListVehiclesQueryKey() }),
+          queryClient.invalidateQueries({ queryKey: getGetPublicVehiclesQueryKey() }),
+          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() }),
+        ])
+        setOpen(false)
+      },
+      onError: (error: any) => toast({ title: "Could not update vehicle", description: error.error || error.message, variant: "destructive" }),
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button variant="outline" size="sm" aria-label={`Edit ${vehicle.make} ${vehicle.model}`}><Pencil className="w-4 h-4" /></Button></DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Edit {vehicle.year} {vehicle.make} {vehicle.model}</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {([
+            ["year", "Year", "number"], ["make", "Make", "text"], ["model", "Model", "text"],
+            ["vehicleClass", "Class", "text"], ["unitNumber", "Unit number", "text"],
+            ["licensePlate", "License plate", "text"], ["capacity", "Capacity", "number"],
+            ["transmission", "Transmission", "text"], ["dailyRate", "Daily rate ($)", "number"],
+            ["weeklyRate", "Weekly rate ($)", "number"], ["imageUrl", "Actual photo URL", "url"],
+            ["vin", "VIN (admin only)", "text"], ["features", "Features (comma separated)", "text"],
+            ["notes", "Notes (admin only)", "text"],
+          ] as const).map(([field, label, type]) => (
+            <div className="space-y-2" key={field}>
+              <Label htmlFor={`edit-${vehicle.id}-${field}`}>{label}</Label>
+              <Input id={`edit-${vehicle.id}-${field}`} type={type} step={field.includes("Rate") ? "0.01" : undefined}
+                required={!['imageUrl','vin','features','notes'].includes(field)} value={form[field]}
+                onChange={event => setForm({ ...form, [field]: event.target.value })} />
+            </div>
+          ))}
+          <Button className="sm:col-span-2" type="submit" disabled={updateVehicle.isPending}>Save Changes</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ArchiveVehicleButton({ vehicle }: { vehicle: Vehicle }) {
+  const archiveVehicle = useArchiveVehicle()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const archive = () => {
+    if (!window.confirm(`Archive ${vehicle.year} ${vehicle.make} ${vehicle.model}? It will be removed from the public fleet.`)) return
+    archiveVehicle.mutate({ id: vehicle.id }, {
+      onSuccess: () => {
+        toast({ title: "Vehicle archived" })
+        void Promise.all([
+          queryClient.invalidateQueries({ queryKey: getListVehiclesQueryKey() }),
+          queryClient.invalidateQueries({ queryKey: getGetPublicVehiclesQueryKey() }),
+          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() }),
+        ])
+      },
+      onError: (error: any) => toast({ title: "Could not archive vehicle", description: error.error || error.message, variant: "destructive" }),
+    })
+  }
+  return <Button variant="destructive" size="sm" onClick={archive} disabled={archiveVehicle.isPending} aria-label={`Archive ${vehicle.make} ${vehicle.model}`}><Archive className="w-4 h-4" /></Button>
 }
 
 function ScheduleMaintenanceDialog({ vehicle }: { vehicle: Vehicle }) {

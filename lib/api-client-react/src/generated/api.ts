@@ -23,11 +23,13 @@ import type {
   Customer,
   CustomerDetail,
   CustomerInput,
+  CustomerUpdate,
   Dashboard,
   ErrorResponse,
   HealthStatus,
   MaintenanceInput,
   MaintenancePeriod,
+  MaintenanceUpdate,
   NotFoundResponse,
   PublicVehicle,
   Rental,
@@ -868,6 +870,95 @@ export function useGetCustomer<TData = Awaited<ReturnType<typeof getCustomer>>, 
 
 
 
+export const getUpdateCustomerUrl = (id: string,) => {
+
+
+
+
+  return `/api/customers/${id}`
+}
+
+/**
+ * @summary Edit a customer record
+ */
+export const updateCustomer = async (id: string,
+    customerUpdate: CustomerUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Customer> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Customer>(getUpdateCustomerUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(customerUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateCustomerMutationKey = () => ['updateCustomer'] as const;
+
+export const getUpdateCustomerMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCustomer>>, TError,UpdateCustomerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCustomer>>, TError,UpdateCustomerMutationVariables, TContext> => {
+
+const mutationKey = getUpdateCustomerMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCustomer>>, UpdateCustomerMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCustomer(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCustomerMutationResult = NonNullable<Awaited<ReturnType<typeof updateCustomer>>>
+    export type UpdateCustomerMutationBody = BodyType<CustomerUpdate>
+    export type UpdateCustomerMutationError = ErrorType<NotFoundResponse>
+    export type UpdateCustomerMutationVariables = {id: string;data: BodyType<CustomerUpdate>}
+
+    /**
+ * @summary Edit a customer record
+ */
+export const useUpdateCustomer = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCustomer>>, TError,UpdateCustomerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCustomer>>,
+        TError,
+        UpdateCustomerMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateCustomerMutationOptions(options));
+    }
+
 export const getListRentalsUrl = () => {
 
 
@@ -1374,5 +1465,168 @@ export const useCreateMaintenance = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateMaintenanceMutationOptions(options));
+    }
+
+export const getUpdateMaintenanceUrl = (id: string,) => {
+
+
+
+
+  return `/api/maintenance/${id}`
+}
+
+/**
+ * @summary Edit a maintenance block
+ */
+export const updateMaintenance = async (id: string,
+    maintenanceUpdate: MaintenanceUpdate, options?: Parameters<typeof customFetch>[1]): Promise<MaintenancePeriod> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<MaintenancePeriod>(getUpdateMaintenanceUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(maintenanceUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateMaintenanceMutationKey = () => ['updateMaintenance'] as const;
+
+export const getUpdateMaintenanceMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMaintenance>>, TError,UpdateMaintenanceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMaintenance>>, TError,UpdateMaintenanceMutationVariables, TContext> => {
+
+const mutationKey = getUpdateMaintenanceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMaintenance>>, UpdateMaintenanceMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMaintenance(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMaintenanceMutationResult = NonNullable<Awaited<ReturnType<typeof updateMaintenance>>>
+    export type UpdateMaintenanceMutationBody = BodyType<MaintenanceUpdate>
+    export type UpdateMaintenanceMutationError = ErrorType<NotFoundResponse>
+    export type UpdateMaintenanceMutationVariables = {id: string;data: BodyType<MaintenanceUpdate>}
+
+    /**
+ * @summary Edit a maintenance block
+ */
+export const useUpdateMaintenance = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMaintenance>>, TError,UpdateMaintenanceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMaintenance>>,
+        TError,
+        UpdateMaintenanceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateMaintenanceMutationOptions(options));
+    }
+
+export const getDeleteMaintenanceUrl = (id: string,) => {
+
+
+
+
+  return `/api/maintenance/${id}`
+}
+
+/**
+ * @summary Cancel a maintenance block
+ */
+export const deleteMaintenance = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteMaintenanceUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteMaintenanceMutationKey = () => ['deleteMaintenance'] as const;
+
+export const getDeleteMaintenanceMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenance>>, TError,DeleteMaintenanceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenance>>, TError,DeleteMaintenanceMutationVariables, TContext> => {
+
+const mutationKey = getDeleteMaintenanceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMaintenance>>, DeleteMaintenanceMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteMaintenance(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMaintenanceMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMaintenance>>>
+
+    export type DeleteMaintenanceMutationError = ErrorType<NotFoundResponse>
+    export type DeleteMaintenanceMutationVariables = {id: string}
+
+    /**
+ * @summary Cancel a maintenance block
+ */
+export const useDeleteMaintenance = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenance>>, TError,DeleteMaintenanceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMaintenance>>,
+        TError,
+        DeleteMaintenanceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteMaintenanceMutationOptions(options));
     }
 

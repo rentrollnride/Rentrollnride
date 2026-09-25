@@ -119,6 +119,17 @@ export interface CustomerInput {
   notes?: string | null;
 }
 
+export interface CustomerUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 7 */
+  phone?: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
 export type RentalRateType = typeof RentalRateType[keyof typeof RentalRateType];
 
 
@@ -266,6 +277,15 @@ export interface MaintenanceInput {
   vehicleId: string;
   startAt: string;
   endAt: string;
+  /** @nullable */
+  reason?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export interface MaintenanceUpdate {
+  startAt?: string;
+  endAt?: string;
   /** @nullable */
   reason?: string | null;
   /** @nullable */

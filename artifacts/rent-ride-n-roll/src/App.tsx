@@ -1,4 +1,5 @@
-import { type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { Seo } from '@/components/public/Seo';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -12,30 +13,31 @@ import {
   Router as WouterRouter,
 } from 'wouter';
 
-// Public Pages
-import Home from './pages/public/Home';
-import Fleet from './pages/public/Fleet';
-import VehicleDetails from './pages/public/VehicleDetails';
-import Rates from './pages/public/Rates';
-import Requirements from './pages/public/Requirements';
-import ServiceArea from './pages/public/ServiceArea';
-import About from './pages/public/About';
-import Contact from './pages/public/Contact';
-
-// Admin Pages
-import AdminLogin from './pages/admin/Login';
-import Dashboard from './pages/admin/Dashboard';
-import Calendar from './pages/admin/Calendar';
-import FleetManager from './pages/admin/FleetManager';
-import Customers from './pages/admin/Customers';
-import Rentals from './pages/admin/Rentals';
-import NewRental from './pages/admin/NewRental';
+const Home = lazy(() => import('./pages/public/Home'));
+const Fleet = lazy(() => import('./pages/public/Fleet'));
+const VehicleDetails = lazy(() => import('./pages/public/VehicleDetails'));
+const Rates = lazy(() => import('./pages/public/Rates'));
+const Requirements = lazy(() => import('./pages/public/Requirements'));
+const ServiceArea = lazy(() => import('./pages/public/ServiceArea'));
+const About = lazy(() => import('./pages/public/About'));
+const Contact = lazy(() => import('./pages/public/Contact'));
+const Privacy = lazy(() => import('./pages/public/Privacy'));
+const Terms = lazy(() => import('./pages/public/Terms'));
+const AdminLogin = lazy(() => import('./pages/admin/Login'));
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const Calendar = lazy(() => import('./pages/admin/Calendar'));
+const FleetManager = lazy(() => import('./pages/admin/FleetManager'));
+const Customers = lazy(() => import('./pages/admin/Customers'));
+const Rentals = lazy(() => import('./pages/admin/Rentals'));
+const NewRental = lazy(() => import('./pages/admin/NewRental'));
 
 const queryClient = new QueryClient();
 
 function Router() {
   return (
     <RoutedErrorBoundary>
+      <RouteSeo />
+      <Suspense fallback={<div className="min-h-[50vh] grid place-items-center font-mono text-sm">Loading…</div>}>
       <Switch>
         {/* Public Routes */}
         <Route path="/" component={Home} />
@@ -46,6 +48,8 @@ function Router() {
         <Route path="/service-area" component={ServiceArea} />
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" component={AdminLogin} />
@@ -58,8 +62,28 @@ function Router() {
 
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
     </RoutedErrorBoundary>
   );
+}
+
+const PAGE_META: Record<string, [string, string]> = {
+  '/': ['Rent Ride Roll LLC | Raleigh-Durham Vehicle Rentals', 'Daily and weekly vehicle rentals in Raleigh-Durham. Call or text to confirm availability and terms.'],
+  '/fleet': ['Rental Fleet | Rent Ride Roll LLC', 'Browse available Rent Ride Roll LLC vehicles and call or text to confirm availability.'],
+  '/rates': ['Vehicle Rental Rates | Rent Ride Roll LLC', 'Review daily and weekly rental rates, deposits, and important pricing details.'],
+  '/requirements': ['Rental Requirements | Rent Ride Roll LLC', 'Review age, license, insurance, card, and deposit requirements before renting.'],
+  '/service-area': ['Raleigh-Durham Service Area | Rent Ride Roll LLC', 'Vehicle rentals serving Raleigh, Durham, and nearby communities.'],
+  '/about': ['About Rent Ride Roll LLC', 'Learn about Rent Ride Roll LLC and its Raleigh-Durham vehicle rental service.'],
+  '/contact': ['Contact Rent Ride Roll LLC', 'Call or text Rent Ride Roll LLC to ask about vehicles, rates, and availability.'],
+  '/privacy': ['Privacy Policy | Rent Ride Roll LLC', 'How Rent Ride Roll LLC handles customer information.'],
+  '/terms': ['Website Terms | Rent Ride Roll LLC', 'Terms for using the Rent Ride Roll LLC website.'],
+}
+
+function RouteSeo() {
+  const [location] = useLocation()
+  const normalizedPath = location.startsWith('/fleet/') ? '/fleet' : location
+  const [title, description] = PAGE_META[normalizedPath] ?? PAGE_META['/']
+  return <Seo title={title} description={description} path={location} noIndex={location.startsWith('/admin')} />
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }) {

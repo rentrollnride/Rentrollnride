@@ -1,8 +1,8 @@
 import { AdminLayout } from "@/components/layout/AdminLayout"
-import { useListCustomers, useCreateCustomer } from "@workspace/api-client-react"
+import { useListCustomers, useCreateCustomer, useUpdateCustomer, type Customer } from "@workspace/api-client-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Plus, UserCircle, Phone, History } from "lucide-react"
+import { Search, Plus, UserCircle, Phone, Pencil } from "lucide-react"
 import { Link } from "wouter"
 import { useState, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -71,6 +71,7 @@ export default function Customers() {
                     <Button variant="outline" size="sm" className="h-8" asChild>
                       <Link href={`/admin/rentals?customerId=${customer.id}`}>View History</Link>
                     </Button>
+                    <EditCustomerDialog customer={customer} />
                   </div>
                 </div>
               ))}
@@ -84,6 +85,47 @@ export default function Customers() {
         )}
       </div>
     </AdminLayout>
+  )
+}
+
+function EditCustomerDialog({ customer }: { customer: Customer }) {
+  const [open, setOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    name: customer.name, phone: customer.phone, email: customer.email ?? "", notes: customer.notes ?? "",
+  })
+  const updateCustomer = useUpdateCustomer()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault()
+    updateCustomer.mutate({ id: customer.id, data: {
+      name: formData.name.trim(), phone: formData.phone.trim(),
+      email: formData.email.trim() || null, notes: formData.notes.trim() || null,
+    } }, {
+      onSuccess: () => {
+        toast({ title: "Customer updated" })
+        queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() })
+        setOpen(false)
+      },
+      onError: (error: any) => toast({ title: "Could not update customer", description: error.error || error.message, variant: "destructive" }),
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button variant="outline" size="sm" className="h-8" aria-label={`Edit ${customer.name}`}><Pencil className="w-4 h-4" /></Button></DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Edit Customer</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2"><Label htmlFor={`customer-name-${customer.id}`}>Full Name</Label><Input id={`customer-name-${customer.id}`} required value={formData.name} onChange={event => setFormData({ ...formData, name: event.target.value })} /></div>
+          <div className="space-y-2"><Label htmlFor={`customer-phone-${customer.id}`}>Phone</Label><Input id={`customer-phone-${customer.id}`} type="tel" required value={formData.phone} onChange={event => setFormData({ ...formData, phone: event.target.value })} /></div>
+          <div className="space-y-2"><Label htmlFor={`customer-email-${customer.id}`}>Email</Label><Input id={`customer-email-${customer.id}`} type="email" value={formData.email} onChange={event => setFormData({ ...formData, email: event.target.value })} /></div>
+          <div className="space-y-2"><Label htmlFor={`customer-notes-${customer.id}`}>Notes</Label><Input id={`customer-notes-${customer.id}`} value={formData.notes} onChange={event => setFormData({ ...formData, notes: event.target.value })} /></div>
+          <Button className="w-full" type="submit" disabled={updateCustomer.isPending}>Save Changes</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

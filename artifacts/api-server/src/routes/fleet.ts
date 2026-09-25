@@ -34,6 +34,13 @@ import {
   UpdateRentalStatusBody,
   UpdateRentalStatusParams,
   UpdateRentalStatusResponse,
+  UpdateCustomerBody,
+  UpdateCustomerParams,
+  UpdateCustomerResponse,
+  UpdateMaintenanceBody,
+  UpdateMaintenanceParams,
+  UpdateMaintenanceResponse,
+  DeleteMaintenanceParams,
   UpdateVehicleBody,
   UpdateVehicleParams,
   UpdateVehicleResponse,
@@ -183,6 +190,7 @@ async function conflictFor(
   startAt: Date,
   endAt: Date,
   excludeRentalId?: string,
+  excludeMaintenanceId?: string,
 ) {
   const rentalConditions = [
     eq(rentalsTable.vehicleId, vehicleId),
@@ -202,16 +210,16 @@ async function conflictFor(
     return `Conflicts with an existing rental ending ${rentalConflict.expectedReturnAt.toLocaleString()}.`;
   }
 
+  const maintenanceConditions = [
+    eq(maintenancePeriodsTable.vehicleId, vehicleId),
+    lt(maintenancePeriodsTable.startAt, endAt),
+    gt(maintenancePeriodsTable.endAt, startAt),
+  ];
+  if (excludeMaintenanceId) maintenanceConditions.push(ne(maintenancePeriodsTable.id, excludeMaintenanceId));
   const [maintenanceConflict] = await executor
     .select()
     .from(maintenancePeriodsTable)
-    .where(
-      and(
-        eq(maintenancePeriodsTable.vehicleId, vehicleId),
-        lt(maintenancePeriodsTable.startAt, endAt),
-        gt(maintenancePeriodsTable.endAt, startAt),
-      ),
-    )
+    .where(and(...maintenanceConditions))
     .limit(1);
   if (maintenanceConflict) {
     return `Conflicts with maintenance ending ${maintenanceConflict.endAt.toLocaleString()}.`;
@@ -515,6 +523,24 @@ router.get("/customers/:id", async (req, res): Promise<void> => {
   );
 });
 
+router.patch("/customers/:id", async (req, res): Promise<void> => {
+  const params = UpdateCustomerParams.safeParse(req.params);
+  const body = UpdateCustomerBody.safeParse(req.body);
+  if (!params.success || !body.success || EXAMPLE_CUSTOMER_IDS.includes(params.data.id)) {
+    res.status(params.success && body.success ? 404 : 400).json({ error: params.success && body.success ? "Customer not found." : "Invalid customer update." });
+    return;
+  }
+  const [customer] = await db.update(customersTable).set(body.data).where(eq(customersTable.id, params.data.id)).returning();
+  if (!customer) {
+    res.status(404).json({ error: "Customer not found." });
+    return;
+  }
+  res.json(UpdateCustomerResponse.parse({
+    id: customer.id, name: customer.name, phone: customer.phone,
+    email: customer.email, notes: customer.notes, createdAt: customer.createdAt.toISOString(),
+  }));
+});
+
 router.get("/rentals", async (_req, res): Promise<void> => {
   res.json(ListRentalsResponse.parse(await hydratedRentals()));
 });
@@ -768,6 +794,63 @@ router.post("/maintenance", async (req, res): Promise<void> => {
       notes: maintenance.notes,
     }),
   );
+});
+
+router.patch("/maintenance/:id", async (req, res): Promise<void> => {
+  const params = UpdateMaintenanceParams.safeParse(req.params);
+  const body = UpdateMaintenanceBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Invalid maintenance update." });
+    return;
+  }
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [current] = await tx.select().from(maintenancePeriodsTable).where(eq(maintenancePeriodsTable.id, params.data.id));
+      if (!current) throw new FleetHttpError(404, "Maintenance period not found.");
+      await lockVehicle(tx, current.vehicleId);
+      const startAt = body.data.startAt ? new Date(body.data.startAt) : current.startAt;
+      const endAt = body.data.endAt ? new Date(body.data.endAt) : current.endAt;
+      if (!Number.isFinite(startAt.getTime()) || !Number.isFinite(endAt.getTime()) || endAt <= startAt) {
+        throw new FleetHttpError(400, "Maintenance end must be after its start.");
+      }
+      const conflict = await conflictFor(tx, current.vehicleId, startAt, endAt, undefined, current.id);
+      if (conflict) throw new FleetHttpError(409, conflict);
+      const [updated] = await tx.update(maintenancePeriodsTable).set({ ...body.data, startAt, endAt }).where(eq(maintenancePeriodsTable.id, current.id)).returning();
+      await reconcileVehicleStatus(tx, current.vehicleId);
+      const [vehicle] = await tx.select().from(vehiclesTable).where(eq(vehiclesTable.id, current.vehicleId));
+      return { updated, vehicle };
+    });
+    res.json(UpdateMaintenanceResponse.parse({
+      id: result.updated.id, vehicleId: result.vehicle.id,
+      vehicleName: `${result.vehicle.year} ${result.vehicle.make} ${result.vehicle.model}`,
+      startAt: result.updated.startAt.toISOString(), endAt: result.updated.endAt.toISOString(),
+      reason: result.updated.reason, notes: result.updated.notes,
+    }));
+  } catch (error) {
+    if (sendFleetError(res, error)) return;
+    throw error;
+  }
+});
+
+router.delete("/maintenance/:id", async (req, res): Promise<void> => {
+  const params = DeleteMaintenanceParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid maintenance period." });
+    return;
+  }
+  try {
+    await db.transaction(async (tx) => {
+      const [current] = await tx.select().from(maintenancePeriodsTable).where(eq(maintenancePeriodsTable.id, params.data.id));
+      if (!current) throw new FleetHttpError(404, "Maintenance period not found.");
+      await lockVehicle(tx, current.vehicleId);
+      await tx.delete(maintenancePeriodsTable).where(eq(maintenancePeriodsTable.id, current.id));
+      await reconcileVehicleStatus(tx, current.vehicleId);
+    });
+    res.status(204).send();
+  } catch (error) {
+    if (sendFleetError(res, error)) return;
+    throw error;
+  }
 });
 
 export default router;

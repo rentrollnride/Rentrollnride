@@ -345,6 +345,35 @@ export const GetCustomerResponse = zod.object({
 
 
 /**
+ * @summary Edit a customer record
+ */
+export const UpdateCustomerParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+export const updateCustomerBodyPhoneMin = 7;
+
+
+
+export const UpdateCustomerBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "phone": zod.string().min(updateCustomerBodyPhoneMin).optional(),
+  "email": zod.string().email().nullish(),
+  "notes": zod.string().nullish()
+})
+
+export const UpdateCustomerResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "phone": zod.string(),
+  "email": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List rentals
  */
 export const ListRentalsResponseItem = zod.object({
@@ -506,5 +535,40 @@ export const CreateMaintenanceResponse = zod.object({
   "reason": zod.string().nullable(),
   "notes": zod.string().nullable()
 })
+
+
+/**
+ * @summary Edit a maintenance block
+ */
+export const UpdateMaintenanceParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateMaintenanceBody = zod.object({
+  "startAt": zod.coerce.date().optional(),
+  "endAt": zod.coerce.date().optional(),
+  "reason": zod.string().nullish(),
+  "notes": zod.string().nullish()
+})
+
+export const UpdateMaintenanceResponse = zod.object({
+  "id": zod.string(),
+  "vehicleId": zod.string(),
+  "vehicleName": zod.string(),
+  "startAt": zod.coerce.date(),
+  "endAt": zod.coerce.date(),
+  "reason": zod.string().nullable(),
+  "notes": zod.string().nullable()
+})
+
+
+/**
+ * @summary Cancel a maintenance block
+ */
+export const DeleteMaintenanceParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteMaintenanceResponse = zod.void()
 
 

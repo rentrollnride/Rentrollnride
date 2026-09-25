@@ -19,7 +19,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="public-surface min-h-screen flex flex-col bg-background selection:bg-accent selection:text-white">
       {/* Top Bar - Super clean and minimal */}
-      <div className="bg-primary text-primary-foreground py-2 px-4 sm:px-6 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.2em] flex flex-wrap justify-between items-center gap-x-4 gap-y-1">
+      <div className="bg-primary text-primary-foreground py-2 px-4 sm:px-6 text-xs font-semibold uppercase tracking-[0.12em] sm:tracking-[0.2em] flex flex-wrap justify-between items-center gap-x-4 gap-y-1">
         <span className="opacity-80 hidden sm:block">Raleigh-Durham Premium Automotive Rental</span>
         <span className="opacity-80 sm:hidden">Raleigh-Durham, NC</span>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -139,7 +139,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </div>
           
           <div className="md:col-span-3 md:col-start-7">
-            <h4 className="font-bold uppercase tracking-[0.2em] mb-8 text-[11px] text-primary-foreground/40">Navigation</h4>
+            <h4 className="font-bold uppercase tracking-[0.2em] mb-8 text-xs text-primary-foreground/60">Navigation</h4>
             <ul className="space-y-4">
               {NAV_LINKS.map(link => (
                 <li key={link.href}>
@@ -152,7 +152,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="md:col-span-3">
-            <h4 className="font-bold uppercase tracking-[0.2em] mb-8 text-[11px] text-primary-foreground/40">Contact</h4>
+            <h4 className="font-bold uppercase tracking-[0.2em] mb-8 text-xs text-primary-foreground/60">Contact</h4>
             <ul className="space-y-4 text-sm text-primary-foreground/80">
               <li>
                 <a href="tel:+19193565164" className="hover:text-accent transition-colors flex items-center gap-3">
@@ -175,12 +175,14 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         </div>
         
         <div className="max-w-7xl mx-auto px-6 mt-24 pt-8 border-t border-primary-foreground/10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-[11px] uppercase tracking-widest text-primary-foreground/40">
+          <p className="text-xs uppercase tracking-widest text-primary-foreground/60">
             &copy; {new Date().getFullYear()} Rent Ride Roll LLC.
           </p>
-          <Link href="/admin/login" className="text-[10px] text-primary-foreground/20 hover:text-primary-foreground/60 uppercase tracking-[0.2em] font-bold transition-colors">
-            Admin Portal
-          </Link>
+          <div className="flex items-center gap-5 text-xs uppercase tracking-wider">
+            <Link href="/privacy" className="text-primary-foreground/60 hover:text-white">Privacy</Link>
+            <Link href="/terms" className="text-primary-foreground/60 hover:text-white">Terms</Link>
+            <Link href="/admin/login" className="text-primary-foreground/40 hover:text-white font-bold transition-colors">Admin</Link>
+          </div>
         </div>
       </footer>
     </div>

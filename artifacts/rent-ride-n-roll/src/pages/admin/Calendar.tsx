@@ -1,9 +1,14 @@
 import { AdminLayout } from "@/components/layout/AdminLayout"
-import { useListVehicles, useListRentals, useListMaintenance } from "@workspace/api-client-react"
+import { useListVehicles, useListRentals, useListMaintenance, useUpdateMaintenance, useDeleteMaintenance, getListMaintenanceQueryKey, getListVehiclesQueryKey, getGetDashboardQueryKey, type MaintenancePeriod } from "@workspace/api-client-react"
 import { addDays, format, startOfWeek, subWeeks, addWeeks } from "date-fns"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Wrench } from "lucide-react"
+import { ChevronLeft, ChevronRight, Wrench, Pencil, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useQueryClient } from "@tanstack/react-query"
+import { useToast } from "@/hooks/use-toast"
 
 export default function Calendar() {
   const { data: vehicles, isError: vehiclesError, refetch: refetchVehicles } = useListVehicles()
@@ -114,7 +119,68 @@ export default function Calendar() {
             </div>
           </div>
         </div>
+        <section className="space-y-3" aria-labelledby="maintenance-heading">
+          <h3 id="maintenance-heading" className="font-bold uppercase tracking-tight">Maintenance Blocks</h3>
+          {maintenance?.length ? maintenance.map(block => <MaintenanceRow key={block.id} block={block} />) : <p className="text-sm text-muted-foreground">No maintenance blocks scheduled.</p>}
+        </section>
       </div>
     </AdminLayout>
+  )
+}
+
+function MaintenanceRow({ block }: { block: MaintenancePeriod }) {
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({
+    startAt: format(new Date(block.startAt), "yyyy-MM-dd'T'HH:mm"),
+    endAt: format(new Date(block.endAt), "yyyy-MM-dd'T'HH:mm"),
+    reason: block.reason ?? "", notes: block.notes ?? "",
+  })
+  const updateMaintenance = useUpdateMaintenance()
+  const deleteMaintenance = useDeleteMaintenance()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const refresh = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: getListMaintenanceQueryKey() }),
+    queryClient.invalidateQueries({ queryKey: getListVehiclesQueryKey() }),
+    queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() }),
+  ])
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault()
+    updateMaintenance.mutate({ id: block.id, data: {
+      startAt: new Date(form.startAt).toISOString(), endAt: new Date(form.endAt).toISOString(),
+      reason: form.reason.trim() || null, notes: form.notes.trim() || null,
+    } }, {
+      onSuccess: () => { toast({ title: "Maintenance updated" }); void refresh(); setOpen(false) },
+      onError: (error: any) => toast({ title: "Could not update maintenance", description: error.error || error.message, variant: "destructive" }),
+    })
+  }
+  const remove = () => {
+    if (!window.confirm(`Cancel maintenance for ${block.vehicleName}?`)) return
+    deleteMaintenance.mutate({ id: block.id }, {
+      onSuccess: () => { toast({ title: "Maintenance cancelled" }); void refresh() },
+      onError: (error: any) => toast({ title: "Could not cancel maintenance", description: error.error || error.message, variant: "destructive" }),
+    })
+  }
+
+  return (
+    <div className="bg-card border border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div><p className="font-bold">{block.vehicleName}</p><p className="text-sm text-muted-foreground">{format(new Date(block.startAt), 'MMM d, yyyy h:mm a')} – {format(new Date(block.endAt), 'MMM d, yyyy h:mm a')}{block.reason ? ` · ${block.reason}` : ''}</p></div>
+      <div className="flex gap-2">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button variant="outline" size="sm"><Pencil className="w-4 h-4 mr-2" />Edit</Button></DialogTrigger>
+          <DialogContent><DialogHeader><DialogTitle>Edit Maintenance</DialogTitle></DialogHeader>
+            <form onSubmit={submit} className="space-y-4">
+              <div className="space-y-2"><Label>Start</Label><Input type="datetime-local" required value={form.startAt} onChange={event => setForm({ ...form, startAt: event.target.value })} /></div>
+              <div className="space-y-2"><Label>End</Label><Input type="datetime-local" required value={form.endAt} onChange={event => setForm({ ...form, endAt: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Reason</Label><Input value={form.reason} onChange={event => setForm({ ...form, reason: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Notes</Label><Input value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} /></div>
+              <Button className="w-full" type="submit" disabled={updateMaintenance.isPending}>Save Changes</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+        <Button variant="destructive" size="sm" onClick={remove} disabled={deleteMaintenance.isPending}><Trash2 className="w-4 h-4 mr-2" />Cancel</Button>
+      </div>
+    </div>
   )
 }
