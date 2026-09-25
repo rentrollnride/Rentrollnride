@@ -12,7 +12,7 @@ export default function Rates() {
           </div>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter mb-8 text-white">Rates & Terms</h1>
           <p className="text-lg md:text-xl text-primary-foreground/70 font-light max-w-2xl leading-relaxed">
-            Published daily and weekly rates are shown with each vehicle. Call or text to confirm the total for your dates and review rental terms before pickup.
+            Published daily and weekly rates are shown with each vehicle. Select a vehicle and dates online to review the applicable rate and rental agreement before confirming.
           </p>
         </div>
       </div>
@@ -27,7 +27,7 @@ export default function Rates() {
                   Vehicle listings with confirmed rates display a daily rate and a weekly rate. The weekly rate shown is the published weekly price; it is not a promise that a set number of days is free or that a discount will apply beyond the displayed rate.
                 </p>
                 <p>
-                  Rates and vehicle availability may depend on the selected vehicle and rental dates. Confirm the applicable rate, rental duration, taxes or other charges, and total with our team before agreeing to rent. The rental agreement provided at pickup governs the transaction.
+                  Rates and vehicle availability may depend on the selected vehicle and rental dates. Confirm the applicable rate, rental duration, taxes or other charges, and total with our team before agreeing to rent. The electronically signed rental agreement governs the transaction, together with any later written vehicle-condition report, approved extension, or other written terms.
                 </p>
               </div>
             </section>
