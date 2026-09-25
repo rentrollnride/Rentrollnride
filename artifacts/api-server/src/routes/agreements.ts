@@ -102,7 +102,11 @@ async function sendAgreement(args: {
     error?: { error_msg?: string };
   };
   if (!response.ok || !data.signature_request?.signature_request_id) {
-    throw new Error(data.error?.error_msg || "Unable to send the rental agreement.");
+    const providerMessage = data.error?.error_msg || "";
+    if (/paid API plan|test_mode=1|api\/pricing/i.test(providerMessage)) {
+      throw new Error("Electronic signature is temporarily unavailable. Please call or text us to complete your reservation.");
+    }
+    throw new Error("We could not send the rental agreement. Please try again or call/text us for help.");
   }
   return data.signature_request.signature_request_id;
 }
