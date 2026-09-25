@@ -644,6 +644,9 @@ router.post("/rentals/:id/status", async (req, res): Promise<void> => {
       const now = new Date();
       const actualReturnAt = body.data.actualReturnAt ? new Date(body.data.actualReturnAt) : undefined;
       if (body.data.status === "out") {
+        if (process.env.DROPBOX_SIGN_API_KEY && existing.agreementStatus !== "signed") {
+          throw new FleetHttpError(409, "The rental agreement must be electronically signed before vehicle pickup.");
+        }
         if (body.data.actualReturnAt != null) throw new FleetHttpError(400, "actualReturnAt is only valid when returning a rental.");
         if (existing.status === "reserved") {
           if (existing.pickupAt > now) throw new FleetHttpError(409, "Rental cannot be marked out before pickup time.");
