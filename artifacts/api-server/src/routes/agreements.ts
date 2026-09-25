@@ -331,7 +331,18 @@ router.get("/public/reservations/:token", async (req, res): Promise<void> => {
     rateType: row.rental.rateType,
     rate: row.rental.rate,
     deposit: row.rental.deposit,
+    rentalDays: row.rental.rentalDays,
+    estimatedBaseTotal: row.rental.estimatedBaseTotal,
+    estimatedTax: row.rental.estimatedTax,
+    estimatedTotal: row.rental.estimatedTotal,
     approvedTravelArea: APPROVED_TRAVEL_AREA,
+    electronicRecordDisclosure: {
+      paperOption: "You may request a paper agreement before signing.",
+      withdrawBeforeSigning: "You may withdraw electronic consent before signing without an electronic-processing fee by calling (919) 356-5164.",
+      scope: "Electronic consent applies only to this rental transaction unless separately agreed otherwise.",
+      copies: "You may print or save the agreement and may request a paper copy after signing.",
+      requirements: "Internet access, a current web browser, and the ability to display and save or print this agreement.",
+    },
   });
 });
 
