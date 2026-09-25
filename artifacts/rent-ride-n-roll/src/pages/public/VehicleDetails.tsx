@@ -64,10 +64,15 @@ export default function VehicleDetails() {
               </p>
               <RentalRequirementsSummary className="mt-7" />
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                {!vehicle.detailsPending && (
+                {!vehicle.detailsPending && vehicle.status !== "maintenance" && (
                   <Link href={`/reserve/${vehicle.id}`} className="inline-flex min-h-12 items-center justify-center gap-2 bg-accent px-6 py-3 text-sm font-bold uppercase tracking-wide text-white">
                     <FileSignature className="h-4 w-4" /> Reserve online & sign
                   </Link>
+                )}
+                {vehicle.status === "maintenance" && (
+                  <div className="inline-flex min-h-12 items-center justify-center border border-border bg-secondary px-6 py-3 text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                    Temporarily unavailable
+                  </div>
                 )}
                 <a href="tel:+19193565164" className="inline-flex min-h-12 items-center justify-center gap-2 border border-foreground px-6 py-3 text-sm font-bold uppercase tracking-wide"><Phone className="h-4 w-4" /> {vehicle.detailsPending ? "Call for details" : "Call us"}</a>
                 <a href="sms:+19193565164" className="inline-flex min-h-12 items-center justify-center gap-2 border border-foreground px-6 py-3 text-sm font-bold uppercase tracking-wide"><MessageSquare className="h-4 w-4" /> Text us</a>
