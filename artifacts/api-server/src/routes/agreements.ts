@@ -1,5 +1,5 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { Router, type IRouter, type Request, type Response } from "express";
+import { createHash } from "node:crypto";
+import { Router, type IRouter } from "express";
 import { and, eq, gt, isNull, lt, or } from "drizzle-orm";
 import {
   db,
@@ -11,21 +11,8 @@ import {
 
 const router: IRouter = Router();
 const HOLD_MINUTES = 60;
+const AGREEMENT_VERSION = "RRR-2026-09-25-v1";
 const APPROVED_TRAVEL_AREA = "North Carolina, South Carolina, Virginia, and Washington, DC";
-
-function signConfig() {
-  return {
-    apiKey: process.env.DROPBOX_SIGN_API_KEY?.trim() ?? "",
-    templateId: process.env.DROPBOX_SIGN_TEMPLATE_ID?.trim() ?? "",
-    clientId: process.env.DROPBOX_SIGN_CLIENT_ID?.trim() ?? "",
-    testMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
-  };
-}
-
-function signingEnabled() {
-  const config = signConfig();
-  return Boolean(config.apiKey && config.templateId);
-}
 
 function money(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
@@ -47,8 +34,7 @@ function normalizePhone(value: unknown) {
   return typeof value === "string" ? value.replace(/[^0-9+]/g, "").trim() : "";
 }
 
-async function sendAgreement(args: {
-  rentalId: string;
+function agreementSnapshot(args: {
   customer: { name: string; email: string; phone: string };
   vehicle: { year: number; make: string; model: string };
   pickupAt: Date;
@@ -57,64 +43,72 @@ async function sendAgreement(args: {
   rate: number;
   deposit: number;
 }) {
-  const config = signConfig();
-  if (!config.apiKey || !config.templateId) {
-    throw new Error("Electronic signature is not configured.");
-  }
-
-  const payload: Record<string, unknown> = {
-    template_ids: [config.templateId],
-    subject: `Rent Ride Roll LLC rental agreement — ${args.vehicle.year} ${args.vehicle.make} ${args.vehicle.model}`,
-    message: "Please review and sign your Rent Ride Roll LLC rental agreement to confirm your reservation. Payment and the refundable deposit are handled at pickup.",
-    signers: [{
-      role: "Renter",
-      name: args.customer.name,
-      email_address: args.customer.email,
-    }],
-    metadata: {
-      rental_id: args.rentalId,
-      renter_name: args.customer.name,
-      renter_email: args.customer.email,
-      renter_phone: args.customer.phone,
-      vehicle: `${args.vehicle.year} ${args.vehicle.make} ${args.vehicle.model}`,
-      pickup: dateLabel(args.pickupAt),
-      return_at: dateLabel(args.expectedReturnAt),
-      rate: `${money(args.rate)} ${args.rateType}`,
-      deposit: money(args.deposit),
-      approved_travel_area: APPROVED_TRAVEL_AREA,
-    },
-    test_mode: config.testMode,
-  };
-  if (config.clientId) payload.client_id = config.clientId;
-
-  const response = await fetch("https://api.hellosign.com/v3/signature_request/send_with_template", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${config.apiKey}:`).toString("base64")}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(15000),
-  });
-
-  const data = await response.json() as {
-    signature_request?: { signature_request_id?: string };
-    error?: { error_msg?: string };
-  };
-  if (!response.ok || !data.signature_request?.signature_request_id) {
-    const providerMessage = data.error?.error_msg || "";
-    console.warn("Dropbox Sign send failed", {
-      status: response.status,
-      message: providerMessage,
-      templateId: config.templateId,
-      testMode: config.testMode,
-    });
-    if (/paid API plan|test_mode=1|api\/pricing/i.test(providerMessage)) {
-      throw new Error("Electronic signature is temporarily unavailable. Please call or text us to complete your reservation.");
-    }
-    throw new Error("We could not send the rental agreement. Please try again or call/text us for help.");
-  }
-  return data.signature_request.signature_request_id;
+  return [
+    "RENT RIDE ROLL LLC",
+    "VEHICLE RENTAL AGREEMENT & POLICY ACKNOWLEDGMENT",
+    `Agreement version: ${AGREEMENT_VERSION}`,
+    "",
+    `Renter: ${args.customer.name}`,
+    `Email: ${args.customer.email}`,
+    `Phone: ${args.customer.phone}`,
+    `Vehicle: ${args.vehicle.year} ${args.vehicle.make} ${args.vehicle.model}`,
+    `Pickup: ${dateLabel(args.pickupAt)}`,
+    `Scheduled return: ${dateLabel(args.expectedReturnAt)}`,
+    `Rental rate: ${money(args.rate)} ${args.rateType}`,
+    `Refundable deposit: ${money(args.deposit)}`,
+    `Approved travel area: ${APPROVED_TRAVEL_AREA}`,
+    "",
+    "1. DRIVER ELIGIBILITY AND AUTHORIZED DRIVERS",
+    "The renter must present a valid driver's license, current proof of insurance acceptable to Rent Ride Roll LLC, and an accepted debit or credit card before taking possession of the vehicle. Renters age 21 and older meet the standard age requirement. Renters ages 18 through 20 may be subject to an under-age fee disclosed before the rental is confirmed. Only drivers approved by Rent Ride Roll LLC may operate the vehicle. The renter remains responsible for the vehicle and the conduct of every authorized driver during the rental period.",
+    "",
+    "2. PAYMENT AND REFUNDABLE DEPOSIT",
+    `Rental charges are due as agreed. A refundable ${money(args.deposit)} deposit is collected at pickup. The deposit may be applied, to the extent permitted by law and this Agreement, toward unpaid rental charges, tolls, citations, cleaning or smoking charges, damage, fuel, late-return charges, or other amounts properly due. Any remaining refundable balance will be returned or released in accordance with the Company's stated process and the payment provider's processing time.`,
+    "",
+    "3. TICKETS, CITATIONS, PARKING CHARGES, AND TOLLS",
+    "The renter is responsible for all tolls, parking charges, traffic or camera citations, impound charges, and similar costs arising from possession or use of the vehicle during the rental period, except to the extent caused solely by the Company before the rental began. If the Company receives a notice or invoice relating to the rental period, the renter agrees to reimburse the underlying charge and any reasonable administrative cost disclosed by the Company and permitted by law.",
+    "",
+    "4. SMOKING, VAPING, AND CLEANING",
+    "Smoking and vaping are prohibited in the vehicle. The renter is responsible for reasonable cleaning, deodorizing, remediation, or restoration costs caused by smoking, vaping, excessive dirt, stains, odors, biohazards, pet-related damage, or other conditions beyond ordinary use. Any specific smoking or cleaning fee must be disclosed in writing before pickup or supported by the actual reasonable cost of remediation where permitted by law.",
+    "",
+    "5. VEHICLE CONDITION AND DAMAGE",
+    "The renter must return the vehicle in substantially the same condition in which it was received, ordinary wear excepted. Subject to applicable law and insurance coverage, the renter is responsible for loss of or damage to the vehicle occurring during the rental period, including collision damage, vandalism, theft, misuse, interior damage, tire or wheel damage, towing, storage, and reasonable related costs. The renter must promptly report any accident, theft, vandalism, warning light, mechanical issue, or material damage and cooperate with reasonable incident and insurance documentation.",
+    "",
+    "6. DRUGS, ILLEGAL SUBSTANCES, CONTRABAND, AND UNLAWFUL USE",
+    "The vehicle may not be used to transport, possess, conceal, manufacture, distribute, or facilitate the use or sale of illegal drugs, controlled substances, stolen property, or other illegal contraband. The vehicle may not be used in connection with criminal activity or for any unlawful purpose.",
+    "",
+    "7. WEAPONS",
+    "Weapons may not be carried, stored, or transported in the vehicle in violation of applicable federal, state, or local law or any written Company policy disclosed before pickup. The renter is solely responsible for compliance with all laws regarding possession and transportation of any lawful weapon.",
+    "",
+    "8. APPROVED TRAVEL AREA",
+    `Unless the Company gives prior written approval, the vehicle may be operated only within ${APPROVED_TRAVEL_AREA}. Travel outside this approved area requires advance written approval from the Company and may result in additional disclosed charges, mileage terms, or other conditions. Unauthorized travel outside the approved area may constitute a breach of this Agreement.`,
+    "",
+    "9. PROHIBITED VEHICLE USE",
+    "The vehicle may not be operated by an unauthorized or unlicensed driver; used while the driver is impaired by alcohol, drugs, or any substance that makes driving unsafe; used for racing, speed testing, towing or pushing another vehicle without approval, or off-road use inconsistent with the vehicle's intended use; overloaded beyond legal or manufacturer limits; subleased or re-rented; or intentionally operated in a manner that creates an unreasonable risk of damage, loss, or injury.",
+    "",
+    "10. FUEL, MILEAGE, LATE RETURN, AND EXTENSIONS",
+    "The renter must comply with the fuel, mileage, pickup, and return terms disclosed for the rental. The vehicle must be returned by the scheduled return time unless the Company approves an extension. Extensions are not effective until approved by the Company. The renter is responsible for any properly disclosed late-return, excess-mileage, refueling, or related charges permitted under this Agreement and applicable law.",
+    "",
+    "11. INSURANCE AND FINANCIAL RESPONSIBILITY",
+    "The renter must maintain the insurance required by the Company for the rental and is responsible for confirming whether the renter's personal insurance or other coverage applies to the rented vehicle. Nothing in this Agreement expands or reduces insurance coverage beyond the applicable policy terms or applicable law.",
+    "",
+    "12. ACCIDENTS, BREAKDOWNS, IMPOUNDMENT, AND LAW ENFORCEMENT",
+    "The renter must promptly notify the Company of any collision, theft, impoundment, law-enforcement contact involving the vehicle, or significant mechanical problem. The renter must not abandon the vehicle or authorize repairs, towing, or other material work without Company approval except where immediate action is reasonably necessary for safety or required by law.",
+    "",
+    "13. CANCELLATIONS, CHANGES, AND EARLY RETURNS",
+    "Cancellation, date changes, early returns, refunds, and reservation holds are governed by the written terms disclosed for the specific rental. No cancellation window or refund is promised unless it is stated in writing by the Company.",
+    "",
+    "14. NO TRANSFER OR SUBLEASE",
+    "The renter may not assign, transfer, sublease, re-rent, or otherwise give possession of the vehicle or this Agreement to another person without prior written approval from the Company.",
+    "",
+    "15. ELECTRONIC RECORDS AND SIGNATURE",
+    "The renter agrees to receive this Agreement and related notices electronically and agrees that an electronic signature has the same intent and effect as a handwritten signature to the extent permitted by applicable law.",
+    "",
+    "16. ENTIRE AGREEMENT; CONTROLLING TERMS",
+    "This document, together with any vehicle-condition report, rate disclosure, approved extension, and other written rental terms provided by the Company, constitutes the rental agreement between the parties. If any provision is found unenforceable, the remaining provisions remain in effect to the extent permitted by law.",
+    "",
+    "RENTER ACKNOWLEDGMENT",
+    "By electronically signing, the renter acknowledges reviewing the rental information and policies above, having an opportunity to ask questions, and agreeing to comply with this Agreement.",
+  ].join("\n");
 }
 
 async function reservationConflict(vehicleId: string, pickupAt: Date, expectedReturnAt: Date) {
@@ -152,7 +146,8 @@ async function reservationConflict(vehicleId: string, pickupAt: Date, expectedRe
 
 router.get("/public/reservation-config", (_req, res): void => {
   res.json({
-    enabled: signingEnabled(),
+    enabled: true,
+    signingMode: "native",
     holdMinutes: HOLD_MINUTES,
     deposit: 300,
     approvedTravelArea: APPROVED_TRAVEL_AREA,
@@ -160,11 +155,6 @@ router.get("/public/reservation-config", (_req, res): void => {
 });
 
 router.post("/public/reservations", async (req, res): Promise<void> => {
-  if (!signingEnabled()) {
-    res.status(503).json({ error: "Online reservations are not available yet. Please call or text to reserve." });
-    return;
-  }
-
   const vehicleId = typeof req.body?.vehicleId === "string" ? req.body.vehicleId : "";
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   const email = normalizeEmail(req.body?.email);
@@ -180,7 +170,7 @@ router.post("/public/reservations", async (req, res): Promise<void> => {
   }
 
   const [vehicle] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, vehicleId)).limit(1);
-  if (!vehicle || vehicle.archived || !vehicle.detailsConfirmed) {
+  if (!vehicle || vehicle.archived || !vehicle.detailsConfirmed || vehicle.status === "maintenance") {
     res.status(404).json({ error: "This vehicle is not available for online reservation." });
     return;
   }
@@ -209,6 +199,17 @@ router.post("/public/reservations", async (req, res): Promise<void> => {
       .returning();
   }
 
+  const snapshot = agreementSnapshot({
+    customer: { name: customer.name, email: customer.email ?? email, phone: customer.phone },
+    vehicle,
+    pickupAt,
+    expectedReturnAt,
+    rateType,
+    rate,
+    deposit: 300,
+  });
+  const hash = createHash("sha256").update(snapshot).digest("hex");
+
   const [rental] = await db.insert(rentalsTable).values({
     customerId: customer.id,
     vehicleId: vehicle.id,
@@ -219,66 +220,128 @@ router.post("/public/reservations", async (req, res): Promise<void> => {
     deposit: 300,
     depositStatus: "not_collected",
     status: "reserved",
-    agreementStatus: "sending",
+    agreementStatus: "pending_signature",
+    agreementVersion: AGREEMENT_VERSION,
+    agreementSnapshot: snapshot,
+    agreementHash: hash,
     holdExpiresAt,
-    notes: "Created from public online reservation.",
+    notes: "Created from public online reservation; native electronic signature required.",
   }).returning();
 
-  try {
-    const providerId = await sendAgreement({
-      rentalId: rental.id,
-      customer: { name: customer.name, email: customer.email ?? email, phone: customer.phone },
-      vehicle,
-      pickupAt,
-      expectedReturnAt,
-      rateType,
-      rate,
-      deposit: 300,
-    });
-
-    const [updated] = await db.update(rentalsTable).set({
-      agreementStatus: "sent",
-      agreementProviderId: providerId,
-      agreementSentAt: new Date(),
-    }).where(eq(rentalsTable.id, rental.id)).returning();
-
-    res.status(201).json({
-      id: updated.id,
-      token: updated.publicToken,
-      agreementStatus: updated.agreementStatus,
-      holdExpiresAt: updated.holdExpiresAt?.toISOString() ?? null,
-      message: "Reservation held. Check your email and sign the agreement to confirm it.",
-    });
-  } catch (error) {
-    await db.delete(rentalsTable).where(eq(rentalsTable.id, rental.id));
-    res.status(502).json({ error: error instanceof Error ? error.message : "Unable to send the rental agreement." });
-  }
+  res.status(201).json({
+    id: rental.id,
+    token: rental.publicToken,
+    agreementStatus: rental.agreementStatus,
+    holdExpiresAt: rental.holdExpiresAt?.toISOString() ?? null,
+    signingUrl: `/sign/${rental.publicToken}`,
+    message: "Reservation held. Review and sign the agreement to confirm it.",
+  });
 });
 
 router.get("/public/reservations/:token", async (req, res): Promise<void> => {
-  const token = req.params.token;
-  const [rental] = await db.select({
-    id: rentalsTable.id,
-    agreementStatus: rentalsTable.agreementStatus,
-    holdExpiresAt: rentalsTable.holdExpiresAt,
-    agreementSignedAt: rentalsTable.agreementSignedAt,
-    status: rentalsTable.status,
-  }).from(rentalsTable).where(eq(rentalsTable.publicToken, token)).limit(1);
+  const rows = await db
+    .select({ rental: rentalsTable, customer: customersTable, vehicle: vehiclesTable })
+    .from(rentalsTable)
+    .innerJoin(customersTable, eq(rentalsTable.customerId, customersTable.id))
+    .innerJoin(vehiclesTable, eq(rentalsTable.vehicleId, vehiclesTable.id))
+    .where(eq(rentalsTable.publicToken, req.params.token))
+    .limit(1);
+  const row = rows[0];
 
-  if (!rental) {
+  if (!row) {
     res.status(404).json({ error: "Reservation not found." });
     return;
   }
 
-  const expired = rental.agreementStatus !== "signed" &&
-    Boolean(rental.holdExpiresAt && rental.holdExpiresAt.getTime() <= Date.now());
+  const expired = row.rental.agreementStatus !== "signed" &&
+    Boolean(row.rental.holdExpiresAt && row.rental.holdExpiresAt.getTime() <= Date.now());
 
   res.json({
-    id: rental.id,
-    agreementStatus: expired ? "expired" : rental.agreementStatus,
-    signedAt: rental.agreementSignedAt?.toISOString() ?? null,
-    holdExpiresAt: rental.holdExpiresAt?.toISOString() ?? null,
-    status: expired ? "cancelled" : rental.status,
+    id: row.rental.id,
+    agreementStatus: expired ? "expired" : row.rental.agreementStatus,
+    signedAt: row.rental.agreementSignedAt?.toISOString() ?? null,
+    holdExpiresAt: row.rental.holdExpiresAt?.toISOString() ?? null,
+    status: expired ? "cancelled" : row.rental.status,
+    agreementVersion: row.rental.agreementVersion,
+    agreementHash: row.rental.agreementHash,
+    agreementText: row.rental.agreementSnapshot,
+    renter: {
+      name: row.customer.name,
+      email: row.customer.email,
+      phone: row.customer.phone,
+    },
+    vehicle: {
+      year: row.vehicle.year,
+      make: row.vehicle.make,
+      model: row.vehicle.model,
+    },
+    pickupAt: row.rental.pickupAt.toISOString(),
+    expectedReturnAt: row.rental.expectedReturnAt.toISOString(),
+    rateType: row.rental.rateType,
+    rate: row.rental.rate,
+    deposit: row.rental.deposit,
+    approvedTravelArea: APPROVED_TRAVEL_AREA,
+  });
+});
+
+router.post("/public/reservations/:token/sign", async (req, res): Promise<void> => {
+  const rows = await db
+    .select({ rental: rentalsTable, customer: customersTable })
+    .from(rentalsTable)
+    .innerJoin(customersTable, eq(rentalsTable.customerId, customersTable.id))
+    .where(eq(rentalsTable.publicToken, req.params.token))
+    .limit(1);
+  const row = rows[0];
+
+  if (!row) {
+    res.status(404).json({ error: "Reservation not found." });
+    return;
+  }
+  if (row.rental.agreementStatus === "signed") {
+    res.json({ ok: true, agreementStatus: "signed", signedAt: row.rental.agreementSignedAt?.toISOString() ?? null });
+    return;
+  }
+  if (row.rental.holdExpiresAt && row.rental.holdExpiresAt.getTime() <= Date.now()) {
+    await db.update(rentalsTable)
+      .set({ status: "cancelled", agreementStatus: "expired" })
+      .where(eq(rentalsTable.id, row.rental.id));
+    res.status(410).json({ error: "This reservation hold expired. Please start a new reservation." });
+    return;
+  }
+
+  const signerName = typeof req.body?.signerName === "string" ? req.body.signerName.trim() : "";
+  const consent = req.body?.consent === true;
+  const electronicConsent = req.body?.electronicConsent === true;
+  if (signerName.length < 2 || !consent || !electronicConsent) {
+    res.status(400).json({ error: "Enter your full legal name and accept both signature acknowledgments." });
+    return;
+  }
+  if (signerName.localeCompare(row.customer.name, undefined, { sensitivity: "base" }) !== 0) {
+    res.status(400).json({ error: "The signer name must match the renter name on the reservation." });
+    return;
+  }
+
+  const signedAt = new Date();
+  const forwarded = req.header("x-forwarded-for");
+  const signerIp = forwarded?.split(",")[0]?.trim() || req.ip || null;
+  const signerUserAgent = req.header("user-agent")?.slice(0, 1000) || null;
+
+  await db.update(rentalsTable).set({
+    agreementStatus: "signed",
+    agreementSignedAt: signedAt,
+    signerConsentAt: signedAt,
+    signerName,
+    signerIp,
+    signerUserAgent,
+    holdExpiresAt: null,
+    agreementProviderId: null,
+  }).where(eq(rentalsTable.id, row.rental.id));
+
+  res.json({
+    ok: true,
+    agreementStatus: "signed",
+    signedAt: signedAt.toISOString(),
+    agreementHash: row.rental.agreementHash,
   });
 });
 
@@ -290,127 +353,41 @@ router.get("/agreements", async (_req, res): Promise<void> => {
     sentAt: rentalsTable.agreementSentAt,
     signedAt: rentalsTable.agreementSignedAt,
     holdExpiresAt: rentalsTable.holdExpiresAt,
+    signerName: rentalsTable.signerName,
+    agreementVersion: rentalsTable.agreementVersion,
+    agreementHash: rentalsTable.agreementHash,
+    publicToken: rentalsTable.publicToken,
   }).from(rentalsTable);
   res.json(rows.map((row) => ({
     ...row,
     sentAt: row.sentAt?.toISOString() ?? null,
     signedAt: row.signedAt?.toISOString() ?? null,
     holdExpiresAt: row.holdExpiresAt?.toISOString() ?? null,
+    signingUrl: `/sign/${row.publicToken}`,
   })));
 });
 
 router.post("/rentals/:id/agreement/send", async (req, res): Promise<void> => {
-  if (!signingEnabled()) {
-    res.status(503).json({ error: "Dropbox Sign is not configured." });
-    return;
-  }
-
-  const rows = await db.select({ rental: rentalsTable, customer: customersTable, vehicle: vehiclesTable })
-    .from(rentalsTable)
-    .innerJoin(customersTable, eq(rentalsTable.customerId, customersTable.id))
-    .innerJoin(vehiclesTable, eq(rentalsTable.vehicleId, vehiclesTable.id))
-    .where(eq(rentalsTable.id, req.params.id))
-    .limit(1);
-  const row = rows[0];
-  if (!row) {
+  const [rental] = await db.select().from(rentalsTable).where(eq(rentalsTable.id, req.params.id)).limit(1);
+  if (!rental) {
     res.status(404).json({ error: "Rental not found." });
     return;
   }
-  if (!row.customer.email) {
-    res.status(400).json({ error: "Add the customer's email before sending an agreement." });
-    return;
-  }
-  if (row.rental.agreementStatus === "signed") {
+  if (rental.agreementStatus === "signed") {
     res.status(409).json({ error: "This agreement is already signed." });
     return;
   }
+  const holdExpiresAt = rental.holdExpiresAt ?? new Date(Date.now() + HOLD_MINUTES * 60_000);
+  await db.update(rentalsTable).set({
+    agreementStatus: "pending_signature",
+    holdExpiresAt,
+  }).where(eq(rentalsTable.id, rental.id));
 
-  try {
-    const providerId = await sendAgreement({
-      rentalId: row.rental.id,
-      customer: { name: row.customer.name, email: row.customer.email, phone: row.customer.phone },
-      vehicle: row.vehicle,
-      pickupAt: row.rental.pickupAt,
-      expectedReturnAt: row.rental.expectedReturnAt,
-      rateType: row.rental.rateType,
-      rate: row.rental.rate,
-      deposit: row.rental.deposit,
-    });
-    const holdExpiresAt = row.rental.holdExpiresAt ?? new Date(Date.now() + HOLD_MINUTES * 60_000);
-    await db.update(rentalsTable).set({
-      agreementStatus: "sent",
-      agreementProviderId: providerId,
-      agreementSentAt: new Date(),
-      holdExpiresAt,
-    }).where(eq(rentalsTable.id, row.rental.id));
-    res.json({ ok: true, agreementStatus: "sent" });
-  } catch (error) {
-    res.status(502).json({ error: error instanceof Error ? error.message : "Unable to send agreement." });
-  }
-});
-
-function parseWebhookBody(req: Request) {
-  const raw = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "";
-  if (!raw) {
-    if (typeof req.body?.json === "string") return JSON.parse(req.body.json);
-    return req.body;
-  }
-  const contentType = req.header("content-type") ?? "";
-  if (contentType.includes("application/json")) return JSON.parse(raw);
-  const match = raw.match(/name="json"\r?\n\r?\n([\s\S]*?)\r?\n--/);
-  if (!match) throw new Error("Invalid callback payload.");
-  return JSON.parse(match[1]);
-}
-
-router.post("/public/signature/webhook", async (req: Request, res: Response): Promise<void> => {
-  const config = signConfig();
-  if (!config.apiKey) {
-    res.status(503).send("Signature verification is not configured.");
-    return;
-  }
-
-  try {
-    const payload = parseWebhookBody(req) as any;
-    const event = payload?.event;
-    const expected = createHmac("sha256", config.apiKey)
-      .update(`${event?.event_time ?? ""}${event?.event_type ?? ""}`)
-      .digest("hex");
-    const received = String(event?.event_hash ?? "");
-    if (expected.length !== received.length ||
-        !timingSafeEqual(Buffer.from(expected), Buffer.from(received))) {
-      res.status(401).send("Invalid signature.");
-      return;
-    }
-
-    const rentalId = payload?.signature_request?.metadata?.rental_id;
-    if (typeof rentalId === "string") {
-      const type = String(event?.event_type ?? "");
-      if (type === "signature_request_all_signed") {
-        await db.update(rentalsTable).set({
-          agreementStatus: "signed",
-          agreementSignedAt: new Date(),
-          holdExpiresAt: null,
-        }).where(eq(rentalsTable.id, rentalId));
-      } else if (type === "signature_request_declined") {
-        await db.update(rentalsTable).set({
-          agreementStatus: "declined",
-          status: "cancelled",
-        }).where(eq(rentalsTable.id, rentalId));
-      } else if (type === "signature_request_canceled") {
-        await db.update(rentalsTable).set({
-          agreementStatus: "cancelled",
-          status: "cancelled",
-        }).where(eq(rentalsTable.id, rentalId));
-      } else if (type === "signature_request_email_bounce") {
-        await db.update(rentalsTable).set({ agreementStatus: "email_bounced" })
-          .where(eq(rentalsTable.id, rentalId));
-      }
-    }
-
-    res.status(200).type("text/plain").send("Hello API Event Received");
-  } catch {
-    res.status(400).send("Invalid callback.");
-  }
+  res.json({
+    ok: true,
+    agreementStatus: "pending_signature",
+    signingUrl: `/sign/${rental.publicToken}`,
+  });
 });
 
 export default router;
