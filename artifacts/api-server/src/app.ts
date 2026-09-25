@@ -43,6 +43,7 @@ app.use(cors({
   allowedHeaders: ["Authorization", "Content-Type"],
   maxAge: 86400,
 }));
+app.use("/api/public/signature/webhook", express.raw({ type: "*/*", limit: "2mb" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
