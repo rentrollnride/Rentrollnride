@@ -41,7 +41,7 @@ export default function Home() {
           </h1>
           
           <p className="mt-8 text-lg md:text-xl max-w-xl text-primary-foreground/70 font-light leading-relaxed">
-              Daily and weekly rental rates for Raleigh-Durham. Reserve online and sign your agreement electronically, or call or text us for help.
+              Daily and weekly rental rates for Raleigh-Durham. Reserve online, review the agreement, and sign electronically on the site, or call or text us for help.
           </p>
           <RentalRequirementsSummary dark className="mt-8 max-w-xl" />
           <div className="mt-12 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-6 w-full sm:w-auto">
