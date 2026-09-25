@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Response } from "express";
-import { and, asc, eq, gt, inArray, lt, lte, ne, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lt, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import {
   db,
   customersTable,
@@ -92,6 +92,9 @@ function computedStatus(rental: Rental): string {
   }
   const now = new Date();
   if (rental.status === "reserved") {
+    if (rental.holdExpiresAt && rental.holdExpiresAt.getTime() <= now.getTime() && rental.agreementStatus !== "signed") {
+      return "cancelled";
+    }
     return rental.pickupAt.getTime() < now.getTime() ? "missed_pickup" : "reserved";
   }
   if (rental.expectedReturnAt.getTime() < now.getTime()) return "overdue";
@@ -192,12 +195,20 @@ async function conflictFor(
   excludeRentalId?: string,
   excludeMaintenanceId?: string,
 ) {
+  const now = new Date();
   const rentalConditions = [
     eq(rentalsTable.vehicleId, vehicleId),
     notInArray(rentalsTable.id, EXAMPLE_RENTAL_IDS),
     inArray(rentalsTable.status, ACTIVE_STATUSES),
     lt(rentalsTable.pickupAt, endAt),
-    or(eq(rentalsTable.status, "out"), gt(rentalsTable.expectedReturnAt, startAt)),
+    gt(rentalsTable.expectedReturnAt, startAt),
+    or(
+      eq(rentalsTable.status, "out"),
+      and(
+        eq(rentalsTable.status, "reserved"),
+        or(isNull(rentalsTable.holdExpiresAt), gt(rentalsTable.holdExpiresAt, now)),
+      ),
+    ),
   ];
   if (excludeRentalId) rentalConditions.push(ne(rentalsTable.id, excludeRentalId));
 
