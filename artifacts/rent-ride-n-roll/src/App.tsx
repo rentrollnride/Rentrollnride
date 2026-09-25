@@ -23,6 +23,7 @@ const About = lazy(() => import('./pages/public/About'));
 const Contact = lazy(() => import('./pages/public/Contact'));
 const Privacy = lazy(() => import('./pages/public/Privacy'));
 const Terms = lazy(() => import('./pages/public/Terms'));
+const Reserve = lazy(() => import('./pages/public/Reserve'));
 const AdminLogin = lazy(() => import('./pages/admin/Login'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const Calendar = lazy(() => import('./pages/admin/Calendar'));
@@ -50,6 +51,7 @@ function Router() {
         <Route path="/contact" component={Contact} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
+        <Route path="/reserve/:id" component={Reserve} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" component={AdminLogin} />
@@ -81,9 +83,9 @@ const PAGE_META: Record<string, [string, string]> = {
 
 function RouteSeo() {
   const [location] = useLocation()
-  const normalizedPath = location.startsWith('/fleet/') ? '/fleet' : location
+  const normalizedPath = location.startsWith('/fleet/') ? '/fleet' : location.startsWith('/reserve/') ? '/fleet' : location
   const [title, description] = PAGE_META[normalizedPath] ?? PAGE_META['/']
-  return <Seo title={title} description={description} path={location} noIndex={location.startsWith('/admin')} />
+  return <Seo title={title} description={description} path={location} noIndex={location.startsWith('/admin') || location.startsWith('/reserve/')} />
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
