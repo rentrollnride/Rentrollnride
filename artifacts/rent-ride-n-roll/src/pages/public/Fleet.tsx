@@ -24,7 +24,7 @@ export default function Fleet() {
           </div>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter mb-8 text-white">The Fleet</h1>
           <p className="text-lg md:text-xl text-primary-foreground/70 font-light max-w-2xl leading-relaxed">
-            Browse the fleet and contact us to confirm current vehicle details, rates, and availability for your dates.
+            Browse the fleet, choose a vehicle, and reserve available dates online. You can still call or text us for help.
           </p>
         </div>
       </div>
