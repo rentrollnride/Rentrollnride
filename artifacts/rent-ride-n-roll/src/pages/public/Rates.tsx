@@ -63,7 +63,7 @@ export default function Rates() {
               <h2 className="text-3xl font-black uppercase tracking-tight mb-8">Privacy & Contact</h2>
               <div className="prose prose-slate dark:prose-invert max-w-none text-muted-foreground leading-loose">
                 <p>
-                  We arrange rentals by phone or text; this site does not take online bookings or payments. Contact us to ask how information shared during an inquiry or rental is handled. Please do not send card numbers, copies of identity documents, or other sensitive personal information by text.
+                  You may submit a reservation online and electronically sign the rental agreement. This site does not collect rental payments or the refundable deposit online. Contact us to ask how information shared during an inquiry or rental is handled. Please do not send card numbers, copies of identity documents, or other sensitive personal information by text.
                 </p>
               </div>
             </section>
@@ -81,7 +81,7 @@ export default function Rates() {
                 <li>Cancellation, mileage, and other terms</li>
               </ul>
               <p className="text-xs text-primary-foreground/60 leading-relaxed mb-8">
-                Rental terms are confirmed directly and in the agreement at pickup. There is no online booking or payment on this site.
+                Online reservations are confirmed after the electronic rental agreement is signed. Payment and the refundable deposit are handled at pickup.
               </p>
               <div className="space-y-3">
                 <a
