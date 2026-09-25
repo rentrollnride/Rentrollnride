@@ -75,9 +75,16 @@ export default function Fleet() {
                     attribution={vehiclePhoto(vehicle).attribution}
                     alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
                   />
-                  {!vehicle.detailsPending && vehicle.vehicleClass && (
-                    <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] shadow-sm">
-                      {vehicle.vehicleClass}
+                  {!vehicle.detailsPending && (
+                    <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                      {vehicle.vehicleClass && (
+                        <div className="bg-background/95 backdrop-blur-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] shadow-sm">
+                          {vehicle.vehicleClass}
+                        </div>
+                      )}
+                      <div className="bg-background/95 backdrop-blur-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] shadow-sm">
+                        {vehicle.status === "available" ? "Available" : vehicle.status === "maintenance" ? "Maintenance" : vehicle.status === "out" ? "Currently Out" : vehicle.status}
+                      </div>
                     </div>
                   )}
                 </div>
