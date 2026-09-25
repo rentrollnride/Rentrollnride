@@ -72,8 +72,8 @@ function Router() {
 }
 
 const PAGE_META: Record<string, [string, string]> = {
-  '/': ['Rent Ride Roll LLC | Raleigh-Durham Vehicle Rentals', 'Daily and weekly vehicle rentals in Raleigh-Durham. Call or text to confirm availability and terms.'],
-  '/fleet': ['Rental Fleet | Rent Ride Roll LLC', 'Browse available Rent Ride Roll LLC vehicles and call or text to confirm availability.'],
+  '/': ['Rent Ride Roll LLC | Raleigh-Durham Vehicle Rentals', 'Daily and weekly vehicle rentals in Raleigh-Durham. Browse the fleet, reserve online, and sign your rental agreement electronically.'],
+  '/fleet': ['Rental Fleet | Rent Ride Roll LLC', 'Browse Rent Ride Roll LLC vehicles, view current status and rates, and reserve available dates online.'],
   '/rates': ['Vehicle Rental Rates | Rent Ride Roll LLC', 'Review daily and weekly rental rates, deposits, and important pricing details.'],
   '/requirements': ['Rental Requirements | Rent Ride Roll LLC', 'Review age, license, insurance, card, and deposit requirements before renting.'],
   '/service-area': ['Raleigh-Durham Service Area | Rent Ride Roll LLC', 'Vehicle rentals serving Raleigh, Durham, and nearby communities.'],
