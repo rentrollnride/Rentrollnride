@@ -37,9 +37,12 @@ app.use("/api", async (req, res, next) => {
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
+  const adminEmails = (process.env.ADMIN_EMAIL ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
   const authorization = req.header("authorization");
-  if (!supabaseUrl || !publishableKey || !adminEmail) {
+  if (!supabaseUrl || !publishableKey || adminEmails.length === 0) {
     res.status(503).json({ error: "Administrator authentication is not configured." });
     return;
   }
@@ -61,7 +64,7 @@ app.use("/api", async (req, res, next) => {
       return;
     }
     const user = (await response.json()) as { email?: string; email_confirmed_at?: string | null };
-    if (user.email?.toLowerCase() !== adminEmail) {
+    if (!adminEmails.includes(user.email?.trim().toLowerCase() ?? "")) {
       res.status(403).json({ error: "This account is not authorized for administrator access." });
       return;
     }

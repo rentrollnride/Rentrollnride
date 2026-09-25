@@ -3,6 +3,18 @@ const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 const STORAGE_KEY = "rent-ride-n-roll-admin-session"
 
+export function approvedAdminEmails(): string[] {
+  return (import.meta.env.VITE_ADMIN_EMAIL ?? "")
+    .split(",")
+    .map((email: string) => email.trim())
+    .filter(Boolean)
+}
+
+function isApprovedEmail(email: string): boolean {
+  return approvedAdminEmails().some((approved) =>
+    approved.toLowerCase() === email.trim().toLowerCase())
+}
+
 export type AdminSession = {
   access_token: string
   refresh_token: string
@@ -64,15 +76,14 @@ export async function signIn(email: string, password: string) {
 }
 
 function requireApprovedEmail(email: string) {
-  const approvedEmail = import.meta.env.VITE_ADMIN_EMAIL
-  if (!approvedEmail || email.trim().toLowerCase() !== approvedEmail.trim().toLowerCase()) {
+  if (!isApprovedEmail(email)) {
     throw new Error("This email is not authorized for administrator access.")
   }
 }
 
 function isApprovedConfirmedUser(user: AdminSession["user"] | null | undefined): boolean {
   return Boolean(user?.email_confirmed_at &&
-    user.email?.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase())
+    user.email && isApprovedEmail(user.email))
 }
 
 function confirmationRedirect() {

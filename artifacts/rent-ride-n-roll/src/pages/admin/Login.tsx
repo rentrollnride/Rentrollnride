@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/components/auth-provider"
-import { registerAdmin, resendAdminConfirmation } from "@/lib/supabase-auth"
+import { approvedAdminEmails, registerAdmin, resendAdminConfirmation } from "@/lib/supabase-auth"
 import { useState, type FormEvent } from "react"
 
 export default function Login() {
   const [, setLocation] = useLocation()
   const { login, session } = useAuth()
-  const [email, setEmail] = useState(import.meta.env.VITE_ADMIN_EMAIL || "")
+  const [email, setEmail] = useState(approvedAdminEmails()[0] || "")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
@@ -74,7 +74,7 @@ export default function Login() {
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="space-y-2 text-left">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} readOnly={setupMode} required />
+                <Input id="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
               </div>
               <div className="space-y-2 text-left">
                 <Label htmlFor="password">Password</Label>
