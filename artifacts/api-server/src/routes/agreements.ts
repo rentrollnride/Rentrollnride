@@ -13,6 +13,8 @@ const router: IRouter = Router();
 const HOLD_MINUTES = 60;
 const AGREEMENT_VERSION = "RRR-2026-09-25-v1";
 const APPROVED_TRAVEL_AREA = "North Carolina, South Carolina, Virginia, and Washington, DC";
+const SHORT_TERM_RENTAL_TAX_RATE = 0.08;
+const MAX_ONLINE_RENTAL_DAYS = 7;
 
 function money(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
@@ -34,14 +36,29 @@ function normalizePhone(value: unknown) {
   return typeof value === "string" ? value.replace(/[^0-9+]/g, "").trim() : "";
 }
 
+function ageOn(dateOfBirth: string, onDate: Date) {
+  const dob = new Date(dateOfBirth + "T12:00:00Z");
+  if (!Number.isFinite(dob.getTime())) return -1;
+  let age = onDate.getUTCFullYear() - dob.getUTCFullYear();
+  const beforeBirthday =
+    onDate.getUTCMonth() < dob.getUTCMonth() ||
+    (onDate.getUTCMonth() === dob.getUTCMonth() && onDate.getUTCDate() < dob.getUTCDate());
+  if (beforeBirthday) age -= 1;
+  return age;
+}
+
 function agreementSnapshot(args: {
-  customer: { name: string; email: string; phone: string };
+  customer: { name: string; email: string; phone: string; dateOfBirth: string };
   vehicle: { year: number; make: string; model: string };
   pickupAt: Date;
   expectedReturnAt: Date;
   rateType: string;
   rate: number;
   deposit: number;
+  rentalDays: number;
+  estimatedBaseTotal: number;
+  estimatedTax: number;
+  estimatedTotal: number;
 }) {
   return [
     "RENT RIDE ROLL LLC",
@@ -51,11 +68,16 @@ function agreementSnapshot(args: {
     `Renter: ${args.customer.name}`,
     `Email: ${args.customer.email}`,
     `Phone: ${args.customer.phone}`,
+    `Date of birth: ${args.customer.dateOfBirth}`,
     `Vehicle: ${args.vehicle.year} ${args.vehicle.make} ${args.vehicle.model}`,
     `Pickup: ${dateLabel(args.pickupAt)}`,
     `Scheduled return: ${dateLabel(args.expectedReturnAt)}`,
     `Rental rate: ${money(args.rate)} ${args.rateType}`,
-    `Refundable deposit: ${money(args.deposit)}`,
+    `Rental days: ${args.rentalDays}`,
+    `Base rental total: ${money(args.estimatedBaseTotal)}`,
+    `NC short-term motor vehicle rental tax (8%): ${money(args.estimatedTax)}`,
+    `Total estimated rental price due at pickup: ${money(args.estimatedTotal)}`,
+    `Refundable security deposit collected separately at pickup: ${money(args.deposit)}`,
     `Approved travel area: ${APPROVED_TRAVEL_AREA}`,
     "",
     "1. DRIVER ELIGIBILITY AND AUTHORIZED DRIVERS",
