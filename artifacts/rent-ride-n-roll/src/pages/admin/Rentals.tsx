@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { CalendarClock, Car, User, Check, X, AlertCircle } from "lucide-react"
 import { useLocation } from "wouter"
 import { format } from "date-fns"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useAuth } from "@/components/auth-provider"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -13,8 +14,30 @@ import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+type AgreementRow = {
+  rentalId: string
+  agreementStatus: string
+  providerId: string | null
+  sentAt: string | null
+  signedAt: string | null
+  holdExpiresAt: string | null
+}
+
 export default function Rentals() {
   const { data: rentals, isLoading } = useListRentals()
+  const { session } = useAuth()
+  const { data: agreements = [] } = useQuery<AgreementRow[]>({
+    queryKey: ["rental-agreements"],
+    enabled: Boolean(session?.access_token),
+    queryFn: async () => {
+      const response = await fetch("/api/agreements", {
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+      })
+      if (!response.ok) throw new Error("Unable to load agreement statuses.")
+      return response.json()
+    },
+  })
+  const agreementByRental = new Map(agreements.map((row) => [row.rentalId, row]))
   const searchParams = new URLSearchParams(window.location.search)
   const customerId = searchParams.get('customerId')
 
@@ -65,7 +88,7 @@ export default function Rentals() {
                 <div className="p-8 text-center text-muted-foreground font-mono">No rentals found.</div>
               ) : (
                 filteredRentals.map(rental => (
-                  <RentalRow key={rental.id} rental={rental} />
+                  <RentalRow key={rental.id} rental={rental} agreement={agreementByRental.get(rental.id)} />
                 ))
               )}
             </div>
@@ -76,7 +99,7 @@ export default function Rentals() {
   )
 }
 
-function RentalRow({ rental }: { rental: any }) {
+function RentalRow({ rental, agreement }: { rental: any, agreement?: AgreementRow }) {
   const updateStatus = useUpdateRentalStatus()
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -99,6 +122,7 @@ function RentalRow({ rental }: { rental: any }) {
           <StatusBadge status={rental.status} />
           {rental.depositStatus === 'not_collected' && <Badge variant="outline" className="text-destructive/80 uppercase text-[10px]">Deposit Uncollected</Badge>}
           {['returned', 'cancelled'].includes(rental.status) && rental.depositStatus === 'collected' && <Badge variant="destructive" className="uppercase text-[10px]">Deposit Pending Resolution</Badge>}
+          <AgreementBadge agreement={agreement} />
         </div>
         
         <div className="font-mono text-xs text-muted-foreground grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
@@ -110,6 +134,9 @@ function RentalRow({ rental }: { rental: any }) {
       </div>
 
       <div className="flex items-center gap-2 self-end md:self-auto flex-wrap">
+        {agreement?.agreementStatus !== "signed" && rental.status !== "returned" && rental.status !== "cancelled" && (
+          <SendAgreementButton rental={rental} agreement={agreement} />
+        )}
         {(rental.status === 'reserved' || rental.status === 'missed_pickup') && (
           <>
             <PickupDialog rental={rental} onComplete={invalidateAll} />
@@ -132,6 +159,48 @@ function RentalRow({ rental }: { rental: any }) {
         )}
       </div>
     </div>
+  )
+}
+
+function AgreementBadge({ agreement }: { agreement?: AgreementRow }) {
+  const status = agreement?.agreementStatus ?? "not_sent"
+  if (status === "signed") return <Badge className="bg-emerald-700 text-white uppercase text-[10px]">Agreement Signed</Badge>
+  if (status === "sent" || status === "sending") return <Badge variant="secondary" className="uppercase text-[10px]">Awaiting Signature</Badge>
+  if (status === "declined" || status === "email_bounced") return <Badge variant="destructive" className="uppercase text-[10px]">{status === "declined" ? "Agreement Declined" : "Email Bounced"}</Badge>
+  const expired = agreement?.holdExpiresAt && new Date(agreement.holdExpiresAt).getTime() <= Date.now()
+  if (expired) return <Badge variant="destructive" className="uppercase text-[10px]">Signature Hold Expired</Badge>
+  return <Badge variant="outline" className="uppercase text-[10px]">Agreement Not Sent</Badge>
+}
+
+function SendAgreementButton({ rental, agreement }: { rental: any, agreement?: AgreementRow }) {
+  const { session } = useAuth()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const [sending, setSending] = useState(false)
+
+  const send = async () => {
+    if (!session?.access_token) return
+    setSending(true)
+    try {
+      const response = await fetch(`/api/rentals/${rental.id}/agreement/send`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Unable to send agreement.")
+      await queryClient.invalidateQueries({ queryKey: ["rental-agreements"] })
+      toast({ title: agreement?.agreementStatus === "sent" ? "Agreement resent" : "Agreement sent" })
+    } catch (err) {
+      toast({ title: "Agreement not sent", description: err instanceof Error ? err.message : "Unable to send agreement.", variant: "destructive" })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <Button size="sm" variant="outline" onClick={() => void send()} disabled={sending}>
+      {sending ? "Sending…" : agreement?.agreementStatus === "sent" ? "Resend Agreement" : "Send Agreement"}
+    </Button>
   )
 }
 
