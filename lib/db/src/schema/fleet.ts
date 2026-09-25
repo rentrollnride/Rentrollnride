@@ -69,6 +69,13 @@ export const rentalsTable = pgTable("rentals", {
   agreementSignedAt: timestamp("agreement_signed_at", { withTimezone: true }),
   holdExpiresAt: timestamp("hold_expires_at", { withTimezone: true }),
   publicToken: uuid("public_token").notNull().defaultRandom(),
+  agreementVersion: text("agreement_version").notNull().default("RRR-2026-09-25-v1"),
+  agreementSnapshot: text("agreement_snapshot"),
+  agreementHash: text("agreement_hash"),
+  signerName: text("signer_name"),
+  signerIp: text("signer_ip"),
+  signerUserAgent: text("signer_user_agent"),
+  signerConsentAt: timestamp("signer_consent_at", { withTimezone: true }),
   notes: text("notes"),
   ...timestamps,
 });
