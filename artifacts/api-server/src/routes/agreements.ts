@@ -103,6 +103,12 @@ async function sendAgreement(args: {
   };
   if (!response.ok || !data.signature_request?.signature_request_id) {
     const providerMessage = data.error?.error_msg || "";
+    console.warn("Dropbox Sign send failed", {
+      status: response.status,
+      message: providerMessage,
+      templateId: config.templateId,
+      testMode: config.testMode,
+    });
     if (/paid API plan|test_mode=1|api\/pricing/i.test(providerMessage)) {
       throw new Error("Electronic signature is temporarily unavailable. Please call or text us to complete your reservation.");
     }
