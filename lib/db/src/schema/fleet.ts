@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   integer,
   numeric,
   pgTable,
@@ -44,7 +45,7 @@ export const customersTable = pgTable("customers", {
   phone: text("phone").notNull(),
   email: text("email"),
   notes: text("notes"),
-  dateOfBirth: text("date_of_birth"),
+  dateOfBirth: date("date_of_birth"),
   ...timestamps,
 });
 
