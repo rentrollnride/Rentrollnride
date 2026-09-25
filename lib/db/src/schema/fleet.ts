@@ -44,6 +44,7 @@ export const customersTable = pgTable("customers", {
   phone: text("phone").notNull(),
   email: text("email"),
   notes: text("notes"),
+  dateOfBirth: text("date_of_birth"),
   ...timestamps,
 });
 
@@ -64,6 +65,10 @@ export const rentalsTable = pgTable("rentals", {
   depositStatus: text("deposit_status").notNull().default("not_collected"),
   status: text("status").notNull().default("reserved"),
   agreementStatus: text("agreement_status").notNull().default("not_sent"),
+  rentalDays: integer("rental_days"),
+  estimatedBaseTotal: numeric("estimated_base_total", { precision: 10, scale: 2, mode: "number" }),
+  estimatedTax: numeric("estimated_tax", { precision: 10, scale: 2, mode: "number" }),
+  estimatedTotal: numeric("estimated_total", { precision: 10, scale: 2, mode: "number" }),
   agreementProviderId: text("agreement_provider_id"),
   agreementSentAt: timestamp("agreement_sent_at", { withTimezone: true }),
   agreementSignedAt: timestamp("agreement_signed_at", { withTimezone: true }),
