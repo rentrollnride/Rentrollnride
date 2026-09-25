@@ -14,7 +14,7 @@ export default function Contact() {
           </div>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter mb-8 text-white">Contact Us</h1>
           <p className="text-lg md:text-xl text-primary-foreground/70 font-light max-w-2xl leading-relaxed">
-            Contact us by phone or text to discuss vehicle availability, rates, pickup arrangements, and rental terms. This site does not take online bookings or payments.
+            Reserve a listed vehicle online and sign the rental agreement electronically, or contact us by phone or text to discuss availability, rates, pickup arrangements, and rental terms. Payments are handled at pickup.
           </p>
         </div>
       </div>
