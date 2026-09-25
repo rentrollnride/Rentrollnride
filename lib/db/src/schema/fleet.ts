@@ -63,6 +63,12 @@ export const rentalsTable = pgTable("rentals", {
   deposit: numeric("deposit", { precision: 10, scale: 2, mode: "number" }).notNull().default(300),
   depositStatus: text("deposit_status").notNull().default("not_collected"),
   status: text("status").notNull().default("reserved"),
+  agreementStatus: text("agreement_status").notNull().default("not_sent"),
+  agreementProviderId: text("agreement_provider_id"),
+  agreementSentAt: timestamp("agreement_sent_at", { withTimezone: true }),
+  agreementSignedAt: timestamp("agreement_signed_at", { withTimezone: true }),
+  holdExpiresAt: timestamp("hold_expires_at", { withTimezone: true }),
+  publicToken: uuid("public_token").notNull().defaultRandom(),
   notes: text("notes"),
   ...timestamps,
 });
