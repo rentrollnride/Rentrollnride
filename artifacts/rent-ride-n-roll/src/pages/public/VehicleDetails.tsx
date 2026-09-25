@@ -1,6 +1,6 @@
 import { useGetPublicVehicles } from "@workspace/api-client-react"
 import { useParams, Link } from "wouter"
-import { ArrowLeft, Phone, MessageSquare, Users, Settings } from "lucide-react"
+import { ArrowLeft, Phone, MessageSquare, Users, Settings, FileSignature } from "lucide-react"
 import { PublicLayout } from "@/components/layout/PublicLayout"
 import { SecondaryPhoneLink } from "@/components/public/SecondaryPhoneLink"
 import { VehicleImage } from "@/components/public/VehicleImage"
@@ -64,8 +64,13 @@ export default function VehicleDetails() {
               </p>
               <RentalRequirementsSummary className="mt-7" />
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <a href="tel:+19193565164" className="inline-flex min-h-12 items-center justify-center gap-2 bg-accent px-6 py-3 text-sm font-bold uppercase tracking-wide text-white"><Phone className="h-4 w-4" /> {vehicle.detailsPending ? "Call for details" : "Call to reserve"}</a>
-                <a href="sms:+19193565164" className="inline-flex min-h-12 items-center justify-center gap-2 border border-foreground px-6 py-3 text-sm font-bold uppercase tracking-wide"><MessageSquare className="h-4 w-4" /> Text to inquire</a>
+                {!vehicle.detailsPending && (
+                  <Link href={`/reserve/${vehicle.id}`} className="inline-flex min-h-12 items-center justify-center gap-2 bg-accent px-6 py-3 text-sm font-bold uppercase tracking-wide text-white">
+                    <FileSignature className="h-4 w-4" /> Reserve online
+                  </Link>
+                )}
+                <a href="tel:+19193565164" className="inline-flex min-h-12 items-center justify-center gap-2 border border-foreground px-6 py-3 text-sm font-bold uppercase tracking-wide"><Phone className="h-4 w-4" /> {vehicle.detailsPending ? "Call for details" : "Call us"}</a>
+                <a href="sms:+19193565164" className="inline-flex min-h-12 items-center justify-center gap-2 border border-foreground px-6 py-3 text-sm font-bold uppercase tracking-wide"><MessageSquare className="h-4 w-4" /> Text us</a>
               </div>
               <SecondaryPhoneLink className="mt-3 inline-block text-sm font-bold text-accent hover:text-primary" />
             </div>
