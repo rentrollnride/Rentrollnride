@@ -12,7 +12,7 @@ export default function Requirements() {
           </div>
           <h1 className="text-[clamp(2rem,9vw,3rem)] md:text-7xl lg:text-8xl font-black uppercase tracking-tighter mb-8 text-white">Before You Rent</h1>
           <p className="text-lg md:text-xl text-primary-foreground/70 font-light max-w-2xl leading-relaxed">
-            Age 21 and older meets the standard age requirement. Ages 18 through 20 may rent with an under-age fee. Review what to bring before you call or text to reserve.
+            Age 21 and older meets the standard age requirement. Ages 18 through 20 may rent with an under-age fee. Review what to bring before you reserve online or contact us for help.
           </p>
         </div>
       </div>
