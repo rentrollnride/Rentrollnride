@@ -181,10 +181,11 @@ router.post("/public/reservations", async (req, res): Promise<void> => {
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   const email = normalizeEmail(req.body?.email);
   const phone = normalizePhone(req.body?.phone);
+  const dateOfBirth = typeof req.body?.dateOfBirth === "string" ? req.body.dateOfBirth.trim() : "";
   const pickupAt = new Date(req.body?.pickupAt);
   const expectedReturnAt = new Date(req.body?.expectedReturnAt);
 
-  if (!vehicleId || name.length < 2 || !email.includes("@") || phone.length < 7 ||
+  if (!vehicleId || name.length < 2 || !email.includes("@") || phone.length < 7 || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth) ||
       !Number.isFinite(pickupAt.getTime()) || !Number.isFinite(expectedReturnAt.getTime()) ||
       expectedReturnAt <= pickupAt || pickupAt.getTime() < Date.now() - 5 * 60_000) {
     res.status(400).json({ error: "Enter valid renter details and pickup/return dates." });
@@ -197,6 +198,16 @@ router.post("/public/reservations", async (req, res): Promise<void> => {
     return;
   }
 
+  const renterAge = ageOn(dateOfBirth, pickupAt);
+  if (renterAge < 18) {
+    res.status(400).json({ error: "Renter must be at least 18 years old on the pickup date." });
+    return;
+  }
+  if (renterAge < 21) {
+    res.status(409).json({ error: "Online booking for ages 18–20 is temporarily unavailable until the under-age fee is configured. Please call or text us." });
+    return;
+  }
+
   const conflict = await reservationConflict(vehicle.id, pickupAt, expectedReturnAt);
   if (conflict) {
     res.status(409).json({ error: conflict });
@@ -204,8 +215,15 @@ router.post("/public/reservations", async (req, res): Promise<void> => {
   }
 
   const durationDays = Math.max(1, Math.ceil((expectedReturnAt.getTime() - pickupAt.getTime()) / 86_400_000));
-  const rateType = durationDays >= 7 ? "weekly" : "daily";
+  if (durationDays > MAX_ONLINE_RENTAL_DAYS) {
+    res.status(409).json({ error: "Online reservations are currently limited to 7 days until extended-rental pricing is configured. Please call or text us for a longer rental." });
+    return;
+  }
+  const rateType = durationDays === 7 ? "weekly" : "daily";
   const rate = rateType === "weekly" ? vehicle.weeklyRate : vehicle.dailyRate;
+  const estimatedBaseTotal = rateType === "weekly" ? vehicle.weeklyRate : vehicle.dailyRate * durationDays;
+  const estimatedTax = Math.round(estimatedBaseTotal * SHORT_TERM_RENTAL_TAX_RATE * 100) / 100;
+  const estimatedTotal = Math.round((estimatedBaseTotal + estimatedTax) * 100) / 100;
   const holdExpiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000);
 
   let customer = (await db.select().from(customersTable)
@@ -213,22 +231,26 @@ router.post("/public/reservations", async (req, res): Promise<void> => {
     .limit(1))[0];
 
   if (!customer) {
-    [customer] = await db.insert(customersTable).values({ name, email, phone }).returning();
+    [customer] = await db.insert(customersTable).values({ name, email, phone, dateOfBirth }).returning();
   } else {
     [customer] = await db.update(customersTable)
-      .set({ name, email, phone })
+      .set({ name, email, phone, dateOfBirth })
       .where(eq(customersTable.id, customer.id))
       .returning();
   }
 
   const snapshot = agreementSnapshot({
-    customer: { name: customer.name, email: customer.email ?? email, phone: customer.phone },
+    customer: { name: customer.name, email: customer.email ?? email, phone: customer.phone, dateOfBirth },
     vehicle,
     pickupAt,
     expectedReturnAt,
     rateType,
     rate,
     deposit: 300,
+    rentalDays: durationDays,
+    estimatedBaseTotal,
+    estimatedTax,
+    estimatedTotal,
   });
   const hash = createHash("sha256").update(snapshot).digest("hex");
 
@@ -240,6 +262,10 @@ router.post("/public/reservations", async (req, res): Promise<void> => {
     rateType,
     rate,
     deposit: 300,
+    rentalDays: durationDays,
+    estimatedBaseTotal,
+    estimatedTax,
+    estimatedTotal,
     depositStatus: "not_collected",
     status: "reserved",
     agreementStatus: "pending_signature",
