@@ -38,6 +38,7 @@ export default function Reserve() {
     name: "",
     email: "",
     phone: "",
+    dateOfBirth: "",
     pickupAt: format(addDays(new Date(), 1), "yyyy-MM-dd'T'10:00"),
     expectedReturnAt: format(addDays(new Date(), 2), "yyyy-MM-dd'T'10:00"),
   })
@@ -49,14 +50,19 @@ export default function Reserve() {
       .catch(() => setConfig({ enabled: false, holdMinutes: 60, deposit: 300, approvedTravelArea: "North Carolina, South Carolina, Virginia, and Washington, DC" }))
   }, [])
 
-  const estimatedRate = useMemo(() => {
+  const estimate = useMemo(() => {
     if (!vehicle || vehicle.detailsPending) return null
     const start = new Date(form.pickupAt)
     const end = new Date(form.expectedReturnAt)
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) return null
     const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86_400_000))
-    if (days >= 7) return { label: "Weekly rate", value: vehicle.weeklyRate }
-    return { label: "Daily rate", value: vehicle.dailyRate }
+    if (days > 7) return { days, tooLong: true, base: 0, tax: 0, total: 0, rateLabel: "Extended rental", rate: 0 }
+    const weekly = days === 7
+    const rate = weekly ? Number(vehicle.weeklyRate) : Number(vehicle.dailyRate)
+    const base = weekly ? rate : rate * days
+    const tax = Math.round(base * 0.08 * 100) / 100
+    const total = Math.round((base + tax) * 100) / 100
+    return { days, tooLong: false, base, tax, total, rateLabel: weekly ? "Weekly rate" : "Daily rate", rate }
   }, [form.pickupAt, form.expectedReturnAt, vehicle])
 
   const submit = async (event: React.FormEvent) => {
@@ -164,6 +170,11 @@ export default function Reserve() {
                     <Input id="phone" type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} autoComplete="tel" />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of birth</Label>
+                  <Input id="dob" type="date" required value={form.dateOfBirth} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} autoComplete="bday" />
+                  <p className="text-xs text-muted-foreground">Renters must be at least 18. Ages 18–20 require an under-age fee that must be disclosed before booking; online booking for that age group is temporarily paused until the fee is configured.</p>
+                </div>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="pickup">Pickup</Label>
@@ -175,11 +186,32 @@ export default function Reserve() {
                   </div>
                 </div>
 
-                {estimatedRate && (
-                  <div className="border-y border-border py-4 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{estimatedRate.label}</span>
-                    <span className="text-2xl font-black">${estimatedRate.value}</span>
-                  </div>
+                {estimate && (
+                  estimate.tooLong ? (
+                    <div className="border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+                      Online reservations are temporarily limited to 7 days until extended-rental pricing is configured. Call or text us for longer rentals.
+                    </div>
+                  ) : (
+                    <div className="border-y border-border py-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{estimate.rateLabel}</span>
+                        <span className="text-xl font-black">${estimate.rate.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Base rental total ({estimate.days} {estimate.days === 1 ? "day" : "days"})</span>
+                        <span>${estimate.base.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>NC short-term motor vehicle rental tax (8%)</span>
+                        <span>${estimate.tax.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-t border-border pt-3">
+                        <span className="text-base font-black uppercase">Total estimated rental price</span>
+                        <span className="text-2xl font-black">${estimate.total.toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Refundable $300 security deposit is collected separately at pickup and is not included in the estimated rental price.</p>
+                    </div>
+                  )
                 )}
 
                 <label className="flex items-start gap-3 text-sm text-muted-foreground">
@@ -189,7 +221,7 @@ export default function Reserve() {
 
                 {error && <p role="alert" className="text-sm font-semibold text-destructive">{error}</p>}
 
-                <Button type="submit" className="h-14 w-full uppercase tracking-widest" disabled={submitting || config?.enabled === false}>
+                <Button type="submit" className="h-14 w-full uppercase tracking-widest" disabled={submitting || config?.enabled === false || Boolean(estimate?.tooLong)}>
                   {submitting ? "Creating agreement…" : "Reserve & review agreement"}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">No charge is made online. Payment and deposit are handled at pickup.</p>
